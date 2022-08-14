@@ -331,7 +331,7 @@ def coord2index(p, vol_range, reso=None, plane='xz'):
         x = np.floor(x * reso).astype(int)
     else: #* pytorch tensor
         x = (x * reso).long()
-
+    # 计算该crop内所有点的索引
     if x.shape[1] == 2:
         index = x[:, 0] + reso * x[:, 1]
         index[index > reso**2] = reso**2
@@ -349,7 +349,7 @@ def update_reso(reso, depth):
         depth (int): U-Net number of layers
     '''
     base = 2**(int(depth) - 1)
-    if ~(reso / base).is_integer(): # when this is not integer, U-Net dimension error
+    if ~(reso / base).is_integer(): # when this is not integer, U-Net dimension error / 向上取整，保证是8的整数倍
         for i in range(base):
             if ((reso + i) / base).is_integer():
                 reso = reso + i
@@ -399,7 +399,7 @@ def add_key(base, new, base_name, new_name, device=None):
     return base
 
 class map2local(object):
-    ''' Add new keys to the given input
+    ''' 将全局坐标值转换为局部坐标值
 
     Args:
         s (float): the defined voxel size

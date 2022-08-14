@@ -1,33 +1,34 @@
 method: conv_onet
 data:
-  dataset: Shapes3D
-  path: data/ShapeNet
-  watertight_path: data/watertight
   classes: null
-  input_type: img
-  train_split: train
-  val_split: val
-  test_split: test
+  dataset: Shapes3D
   dim: 3
-  points_file: points.npz
-  points_iou_file: points.npz
-  multi_files: null
-  points_subsample: 1024
-  points_unpackbits: true
-  model_file: model.off
-  watertight_file: model_watertight.off
+  img_augment: false
   img_folder: img
   img_size: 224 
   img_with_camera: false
-  img_augment: false
+  input_type: img
+  model_file: model.off
+  multi_files: null
   n_views: 24
-  pointcloud_file: pointcloud.npz
-  pointcloud_chamfer_file: pointcloud.npz
-  pointcloud_n: 256
-  pointcloud_target_n: 1024
-  pointcloud_noise: 0.05
-  voxels_file: 'model.binvox'
   padding: 0.1
+  path: data/ShapeNet
+  pointcloud_chamfer_file: pointcloud.npz
+  pointcloud_file: pointcloud.npz
+  pointcloud_n: 256
+  pointcloud_noise: 0.05
+  pointcloud_target_n: 1024
+  points_file: points.npz
+  points_iou_file: points.npz
+  points_subsample: 1024
+  points_unpackbits: true
+  test_split: test
+  train_split: train
+  val_split: val
+  voxels_file: 'model.binvox'
+  watertight_file: model_watertight.off
+  watertight_path: data/watertight
+
 model:
   decoder: simple
   encoder: resnet18
@@ -56,21 +57,23 @@ test:
   model_file: model_best.pt
 generation:
   batch_size: 100000
-  refinement_step: 0
-  vis_n_outputs: 30
+  copy_groundtruth: false
+  copy_input: true
   generate_mesh: true
   generate_pointcloud: true
   generation_dir: generation
-  use_sampling: false
-  resolution_0: 32
-  upsampling_steps: 2
-  simplify_nfaces: null
-  copy_groundtruth: false
-  copy_input: true
   latent_number: 4
   latent_H: 8
   latent_W: 8
   latent_ny: 2
   latent_nx: 2
   latent_repeat: true
+  simplify_nfaces: null
   sliding_window: False # added for crop generation
+  refinement_step: 0
+  resolution_0: 32
+  upsampling_steps: 2
+  use_sampling: false
+  vis_n_outputs: 30
+
+

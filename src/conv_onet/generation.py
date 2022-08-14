@@ -237,19 +237,20 @@ class Generator3D(object):
         lb_query_list, ub_query_list = [], []
         lb_input_list, ub_input_list = [], []
         
-        lb = inputs.min(axis=1).values[0].cpu().numpy() - 0.01
-        ub = inputs.max(axis=1).values[0].cpu().numpy() + 0.01
-        lb_query = np.mgrid[lb[0]:ub[0]:query_crop_size,\
+        lb = inputs.min(axis=1).values[0].cpu().numpy() - 0.01 # low boundary
+        ub = inputs.max(axis=1).values[0].cpu().numpy() + 0.01 # up boundary
+        tmp = np.mgrid[lb[0]:ub[0]:query_crop_size,\
                     lb[1]:ub[1]:query_crop_size,\
-                    lb[2]:ub[2]:query_crop_size].reshape(3, -1).T
+                    lb[2]:ub[2]:query_crop_size]
+        lb_query =tmp.reshape(3, -1).T
         ub_query = lb_query + query_crop_size
         center = (lb_query + ub_query) / 2
         lb_input = center - input_crop_size/2
         ub_input = center + input_crop_size/2
         # number of crops alongside x,y, z axis
-        self.vol_bound['axis_n_crop'] = np.ceil((ub - lb)/query_crop_size).astype(int)
+        self.vol_bound['axis_n_crop'] = np.ceil((ub - lb)/query_crop_size).astype(int) # 向上取整
         # total number of crops
-        num_crop = np.prod(self.vol_bound['axis_n_crop'])
+        num_crop = np.prod(self.vol_bound['axis_n_crop']) # 沿指定轴进行product
         self.vol_bound['n_crop'] = num_crop
         self.vol_bound['input_vol'] = np.stack([lb_input, ub_input], axis=1)
         self.vol_bound['query_vol'] = np.stack([lb_query, ub_query], axis=1)

@@ -25,12 +25,13 @@ is_cuda = (torch.cuda.is_available() and not args.no_cuda)
 device = torch.device("cuda" if is_cuda else "cpu")
 
 out_dir = cfg['training']['out_dir']
+checkpoint_dir = cfg['generation']['checkpoint_dir']
 generation_dir = os.path.join(out_dir, cfg['generation']['generation_dir'])
 out_time_file = os.path.join(generation_dir, 'time_generation_full.pkl')
 out_time_file_class = os.path.join(generation_dir, 'time_generation.pkl')
 
-input_type = cfg['data']['input_type']
-vis_n_outputs = cfg['generation']['vis_n_outputs']
+input_type = cfg['data']['input_type'] # pointcloudcrop
+vis_n_outputs = cfg['generation']['vis_n_outputs'] # 2
 if vis_n_outputs is None:
     vis_n_outputs = -1
 
@@ -40,7 +41,7 @@ dataset = config.get_dataset('test', cfg, return_idx=True)
 # Model
 model = config.get_model(cfg, device=device, dataset=dataset)
 
-checkpoint_io = CheckpointIO(out_dir, model=model)
+checkpoint_io = CheckpointIO(checkpoint_dir, model=model)
 checkpoint_io.load(cfg['test']['model_file'])
 
 # Generator

@@ -129,14 +129,14 @@ def get_dataset(mode, cfg, return_idx=False):
     if dataset_type == 'Shapes3D':
         # Dataset fields
         # Method specific fields (usually correspond to output)
-        fields = method_dict[method].config.get_data_fields(mode, cfg)
+        fields = method_dict[method].config.get_data_fields(mode, cfg) # {}
         # Input fields
         inputs_field = get_inputs_field(mode, cfg)
         if inputs_field is not None:
             fields['inputs'] = inputs_field
 
         if return_idx:
-            fields['idx'] = data.IndexField()
+            fields['idx'] = data.IndexField() # 这个类似乎还没有开发完
 
         dataset = data.Shapes3dDataset(
             dataset_folder, fields,

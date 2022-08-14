@@ -43,8 +43,8 @@ def get_model(cfg, device=None, dataset=None, **kwargs):
         decoder_kwargs['pos_encoding'] = cfg['model']['pos_encoding']
 
     # update the feature volume/plane resolution
-    if cfg['data']['input_type'] == 'pointcloud_crop':
-        fea_type = cfg['model']['encoder_kwargs']['plane_type']
+    if cfg['data']['input_type'] == 'pointcloud_crop': 
+        fea_type = cfg['model']['encoder_kwargs']['plane_type'] # 'grid'
         if (dataset.split == 'train') or (cfg['generation']['sliding_window']):
             recep_field = 2**(cfg['model']['encoder_kwargs']['unet3d_kwargs']['num_levels'] + 2)
             reso = cfg['data']['query_vol_size'] + recep_field - 1

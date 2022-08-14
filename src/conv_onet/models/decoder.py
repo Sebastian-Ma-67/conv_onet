@@ -119,7 +119,7 @@ class PatchLocalDecoder(nn.Module):
 
         if c_dim != 0:
             self.fc_c = nn.ModuleList([
-                nn.Linear(c_dim, hidden_size) for i in range(n_blocks)
+                nn.Linear(c_dim, hidden_size) for i in range(n_blocks) # 5个[32, 32] 的full-connected layers
             ])
 
         #self.fc_p = nn.Linear(dim, hidden_size)
@@ -157,8 +157,8 @@ class PatchLocalDecoder(nn.Module):
         return c
 
     def forward(self, p, c_plane, **kwargs):
-        p_n = p['p_n']
-        p = p['p']
+        p_n = p['p_n'] # [1, 100000, 3]
+        p = p['p']  # [1, 100000, 3]
 
         if self.c_dim != 0:
             plane_type = list(c_plane.keys())
@@ -184,7 +184,7 @@ class PatchLocalDecoder(nn.Module):
             net = self.blocks[i](net)
 
         out = self.fc_out(self.actvn(net))
-        out = out.squeeze(-1)
+        out = out.squeeze(-1) # [1, 100000]
 
         return out
 

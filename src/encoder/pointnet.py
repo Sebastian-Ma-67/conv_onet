@@ -160,20 +160,20 @@ class LocalPoolPointnet(nn.Module):
 class PatchLocalPoolPointnet(nn.Module):
     ''' PointNet-based encoder network with ResNet blocks.
         First transform input points to local system based on the given voxel size.
-        Support non-fixed number of point cloud, but need to precompute the index
+        Support non-fixed number of point cloud, but need to precompute the index / 支持非固定数量的点云，但是得提前计算索引
     
     Args:
-        c_dim (int): dimension of latent code c
+        c_dim (int): dimension of latent code c / 这个是啥？
         dim (int): input points dimension
         hidden_dim (int): hidden dimension of the network
         scatter_type (str): feature aggregation when doing local pooling
-        unet (bool): weather to use U-Net
+        unet (bool): weather to use U-Net / 这肯定得用啊
         unet_kwargs (str): U-Net parameters
-        unet3d (bool): weather to use 3D U-Net
+        unet3d (bool): weather to use 3D U-Net / 那必须是3D
         unet3d_kwargs (str): 3D U-Net parameters
-        plane_resolution (int): defined resolution for plane feature
-        grid_resolution (int): defined resolution for grid feature 
-        plane_type (str): feature type, 'xz' - 1-plane, ['xz', 'xy', 'yz'] - 3-plane, ['grid'] - 3D grid volume
+        plane_resolution (int): defined resolution for plane feature / 暂时不管，我们先考虑 Volume Encoder
+        grid_resolution (int): defined resolution for grid feature / 似乎默认是32？
+        plane_type (str): feature type, 'xz' - 1-plane, ['xz', 'xy', 'yz'] - 3-plane, ['grid'] - 3D grid volume / 那必须是3D ['grid']
         padding (float): conventional padding paramter of ONet for unit cube, so [-0.5, 0.5] -> [-0.55, 0.55]
         n_blocks (int): number of blocks ResNetBlockFC layers
         local_coord (bool): whether to use local coordinate
@@ -265,17 +265,17 @@ class PatchLocalPoolPointnet(nn.Module):
 
     def pool_local(self, index, c):
         bs, fea_dim = c.size(0), c.size(2)
-        keys = index.keys()
+        keys = index.keys() # ['grid']
 
         c_out = 0
         for key in keys:
             # scatter plane features from points
             if key == 'grid':
-                fea = self.scatter(c.permute(0, 2, 1), index[key])
+                fea = self.scatter(c.permute(0, 2, 1), index[key]) # 将每个小cell中的每个特征值的最大值
             else:
                 fea = self.scatter(c.permute(0, 2, 1), index[key])
             if self.scatter == scatter_max:
-                fea = fea[0]
+                fea = fea[0] # 这个只取{0}是因为{0}是输出的值，{1}是argmax值，这里我们只需要输出的值
             # gather feature back to points
             fea = fea.gather(dim=2, index=index[key].expand(-1, fea_dim, -1))
             c_out += fea

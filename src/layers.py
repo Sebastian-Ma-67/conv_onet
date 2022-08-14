@@ -24,6 +24,7 @@ class ResnetBlockFC(nn.Module):
         self.size_in = size_in
         self.size_h = size_h
         self.size_out = size_out
+        
         # Submodules
         self.fc_0 = nn.Linear(size_in, size_h)
         self.fc_1 = nn.Linear(size_h, size_out)
@@ -36,13 +37,20 @@ class ResnetBlockFC(nn.Module):
         # Initialization
         nn.init.zeros_(self.fc_1.weight)
 
-    def forward(self, x):
-        net = self.fc_0(self.actvn(x))
-        dx = self.fc_1(self.actvn(net))
-
+    def forward(self, x): # [1, block_pointnum, 64]
+        net = self.actvn(x)
+        # [1, block_pointnum, 64]
+        net = self.fc_0(net)
+        # [1, block_pointnum, 32]
+        
+        net = self.actvn(net)
+        # [1, block_pointnum, 32]
+        dx = self.fc_1(net)
+        # [1, block_pointnum, 64]
+        
         if self.shortcut is not None:
             x_s = self.shortcut(x)
         else:
             x_s = x
 
-        return x_s + dx
+        return x_s + dx # [1, block_pointnum, 32]

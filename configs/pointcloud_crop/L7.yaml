@@ -1,0 +1,26 @@
+inherit_from: configs/pointcloud_crop/room_grid64.yaml
+data:
+  input_type: pointcloud_crop
+  classes: ['']
+  path: data/demo/L7
+  pointcloud_n: 9992744
+  pointcloud_noise: 0.0
+  pointcloud_file: input.npz
+  voxels_file: null
+  points_file: null
+  points_iou_file: null
+  multi_files: null
+  unit_size: 0.1 # define the size of a voxel, in meter / the size of a small cell is 0.1m
+  query_vol_size: 90 # query crop in voxel / there are 90 cells in a big block
+training:
+  out_dir: out/L7
+test:
+  # model_file: https://s3.eu-central-1.amazonaws.com/avg-projects/convolutional_occupancy_networks/models/pointcloud_crop/room_grid64.pt
+  model_file: pointcloud_crop/room_grid64.pt
+
+generation:
+  generation_dir: generation
+  checkpoint_dir: models
+  sliding_window: True # generate mesh in the sliding-window manner
+  resolution_0: 64 # resolution for each crop
+  upsampling_steps: 0

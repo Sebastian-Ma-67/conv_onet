@@ -178,11 +178,6 @@ for it, data in enumerate(tqdm(test_loader)):
             voxel_mesh = VoxelGrid(inputs).to_mesh()
             voxel_mesh.export(inputs_path)
             out_file_dict['in'] = inputs_path
-        elif input_type ==  'pointcloud_crop':
-            inputs_path = os.path.join(in_dir, '%s.ply' % modelname)
-            inputs = data['inputs'].squeeze(0).cpu().numpy()
-            export_pointcloud(inputs, inputs_path, False)
-            out_file_dict['in'] = inputs_path
         elif input_type == 'pointcloud' or 'partial_pointcloud':
             inputs_path = os.path.join(in_dir, '%s.ply' % modelname)
             inputs = data['inputs'].squeeze(0).cpu().numpy()

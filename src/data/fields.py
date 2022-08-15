@@ -91,7 +91,7 @@ class PatchPointsField(Field):
         p_n = {}
         for key in vol['plane_type']:
             # projected coordinates normalized to the range of [0, 1]
-            p_n[key] = normalize_coord(data[None].copy(), vol['input_vol'], plane=key)
+            p_n[key] = normalize_coord(data[None].copy(), vol['input_vol'])
         data['normalized'] = p_n
 
         return data

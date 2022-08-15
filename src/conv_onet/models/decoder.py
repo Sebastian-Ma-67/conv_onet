@@ -48,12 +48,12 @@ class LocalDecoder(nn.Module):
         self.padding = padding
     
 
-    def sample_plane_feature(self, p, c, plane='xz'):
-        xy = normalize_coordinate(p.clone(), plane=plane, padding=self.padding) # normalize to the range of (0, 1)
-        xy = xy[:, :, None].float()
-        vgrid = 2.0 * xy - 1.0 # normalize to (-1, 1)
-        c = F.grid_sample(c, vgrid, padding_mode='border', align_corners=True, mode=self.sample_mode).squeeze(-1)
-        return c
+    # def sample_plane_feature(self, p, c, plane='xz'):
+    #     xy = normalize_coordinate(p.clone(), plane=plane, padding=self.padding) # normalize to the range of (0, 1)
+    #     xy = xy[:, :, None].float()
+    #     vgrid = 2.0 * xy - 1.0 # normalize to (-1, 1)
+    #     c = F.grid_sample(c, vgrid, padding_mode='border', align_corners=True, mode=self.sample_mode).squeeze(-1)
+    #     return c
 
     def sample_grid_feature(self, p, c):
         p_nor = normalize_3d_coordinate(p.clone(), padding=self.padding) # normalize to the range of (0, 1)
@@ -70,12 +70,12 @@ class LocalDecoder(nn.Module):
             c = 0
             if 'grid' in plane_type:
                 c += self.sample_grid_feature(p, c_plane['grid'])
-            if 'xz' in plane_type:
-                c += self.sample_plane_feature(p, c_plane['xz'], plane='xz')
-            if 'xy' in plane_type:
-                c += self.sample_plane_feature(p, c_plane['xy'], plane='xy')
-            if 'yz' in plane_type:
-                c += self.sample_plane_feature(p, c_plane['yz'], plane='yz')
+            # if 'xz' in plane_type:
+            #     c += self.sample_plane_feature(p, c_plane['xz'], plane='xz')
+            # if 'xy' in plane_type:
+            #     c += self.sample_plane_feature(p, c_plane['xy'], plane='xy')
+            # if 'yz' in plane_type:
+            #     c += self.sample_plane_feature(p, c_plane['yz'], plane='yz')
             c = c.transpose(1, 2)
 
         p = p.float()
@@ -165,12 +165,12 @@ class PatchLocalDecoder(nn.Module):
             c = 0
             if 'grid' in plane_type:
                 c += self.sample_feature(p_n['grid'], c_plane['grid'], fea_type='3d')
-            if 'xz' in plane_type:
-                c += self.sample_feature(p_n['xz'], c_plane['xz'])
-            if 'xy' in plane_type:
-                c += self.sample_feature(p_n['xy'], c_plane['xy'])
-            if 'yz' in plane_type:
-                c += self.sample_feature(p_n['yz'], c_plane['yz'])
+            # if 'xz' in plane_type:
+            #     c += self.sample_feature(p_n['xz'], c_plane['xz'])
+            # if 'xy' in plane_type:
+            #     c += self.sample_feature(p_n['xy'], c_plane['xy'])
+            # if 'yz' in plane_type:
+            #     c += self.sample_feature(p_n['yz'], c_plane['yz'])
             c = c.transpose(1, 2)
 
         p = p.float()

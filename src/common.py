@@ -275,7 +275,7 @@ def normalize_3d_coordinate(p, padding=0.1):
         p_nor[p_nor < 0] = 0.0
     return p_nor
 
-def normalize_coord(p, vol_range, plane='xz'):
+def normalize_coord(p, vol_range, plane='grid'):
     ''' Normalize coordinate to [0, 1] for sliding-window experiments
 
     Args:
@@ -287,14 +287,7 @@ def normalize_coord(p, vol_range, plane='xz'):
     p[:, 1] = (p[:, 1] - vol_range[0][1]) / (vol_range[1][1] - vol_range[0][1])
     p[:, 2] = (p[:, 2] - vol_range[0][2]) / (vol_range[1][2] - vol_range[0][2])
     
-    if plane == 'xz':
-        x = p[:, [0, 2]]
-    elif plane =='xy':
-        x = p[:, [0, 1]]
-    elif plane =='yz':
-        x = p[:, [1, 2]]
-    else:
-        x = p    
+    x = p    
     return x
 
 def coordinate2index(x, reso, coord_type='2d'):

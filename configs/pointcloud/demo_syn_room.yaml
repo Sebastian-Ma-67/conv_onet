@@ -7,9 +7,18 @@ data:
   voxels_file: null
   points_file: null
   points_iou_file: null
+
+model:
+  encoder_kwargs:
+    hidden_dim: 32
+    plane_type: ['grid']
+
 training:
   out_dir: out/demo_syn_room
 test:
-  model_file: https://s3.eu-central-1.amazonaws.com/avg-projects/convolutional_occupancy_networks/models/pointcloud/room_combine.pt
+  # model_file: https://s3.eu-central-1.amazonaws.com/avg-projects/convolutional_occupancy_networks/models/pointcloud/room_combine.pt
+  model_file: pointcloud/room_combine.pt
 generation:
+  checkpoint_dir: models
   generation_dir: generation
+  

@@ -5,7 +5,7 @@ from src.conv_onet.models import decoder
 
 # Decoder dictionary
 decoder_dict = {
-    'simple_local': decoder.LocalDecoder,
+    'simple_local': decoder.LocalDecoder, # 是用的这个吗？
     'simple_local_crop': decoder.PatchLocalDecoder,
     'simple_local_point': decoder.LocalPointDecoder
 }
@@ -59,7 +59,7 @@ class ConvolutionalOccupancyNetwork(nn.Module):
         if self.encoder is not None:
             c = self.encoder(inputs)
         else:
-            # Return inputs?
+            # Return inputs? 忽略好吧
             c = torch.empty(inputs.size(0), 0)
 
         return c

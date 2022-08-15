@@ -5,9 +5,9 @@ from src.conv_onet.models import decoder
 
 # Decoder dictionary
 decoder_dict = {
-    'simple_local': decoder.LocalDecoder, # 是用的这个吗？
-    'simple_local_crop': decoder.PatchLocalDecoder,
-    'simple_local_point': decoder.LocalPointDecoder
+    'simple_local': decoder.LocalDecoder # 是用的这个吗？
+    # 'simple_local_crop': decoder.PatchLocalDecoder,
+    # 'simple_local_point': decoder.LocalPointDecoder
 }
 
 

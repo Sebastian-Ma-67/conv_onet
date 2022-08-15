@@ -30,7 +30,7 @@ generation_dir = os.path.join(out_dir, cfg['generation']['generation_dir'])
 out_time_file = os.path.join(generation_dir, 'time_generation_full.pkl')
 out_time_file_class = os.path.join(generation_dir, 'time_generation.pkl')
 
-input_type = cfg['data']['input_type'] # pointcloudcrop
+input_type = cfg['data']['input_type'] # pointcloud
 vis_n_outputs = cfg['generation']['vis_n_outputs'] # 2
 if vis_n_outputs is None:
     vis_n_outputs = -1
@@ -40,6 +40,8 @@ dataset = config.get_dataset('test', cfg, return_idx=True)
 
 # Model
 model = config.get_model(cfg, device=device, dataset=dataset)
+# Generate
+model.eval()
 
 checkpoint_io = CheckpointIO(checkpoint_dir, model=model)
 checkpoint_io.load(cfg['test']['model_file'])
@@ -49,16 +51,7 @@ generator = config.get_generator(model, cfg, device=device)
 
 # Determine what to generate
 generate_mesh = cfg['generation']['generate_mesh']
-generate_pointcloud = cfg['generation']['generate_pointcloud']
-
-if generate_mesh and not hasattr(generator, 'generate_mesh'):
-    generate_mesh = False
-    print('Warning: generator does not support mesh generation.')
-
-if generate_pointcloud and not hasattr(generator, 'generate_pointcloud'):
-    generate_pointcloud = False
-    print('Warning: generator does not support pointcloud generation.')
-
+generate_pointcloud = cfg['generation']['generate_pointcloud'] # 我们暂时不需要生成点云，所以把它置为false了
 
 # Loader
 test_loader = torch.utils.data.DataLoader(
@@ -66,9 +59,6 @@ test_loader = torch.utils.data.DataLoader(
 
 # Statistics
 time_dicts = []
-
-# Generate
-model.eval()
 
 # Count how many models already created
 model_counter = defaultdict(int)
@@ -132,21 +122,10 @@ for it, data in enumerate(tqdm(test_loader)):
     # Generate outputs
     out_file_dict = {}
 
-    # Also copy ground truth
-    if cfg['generation']['copy_groundtruth']:
-        modelpath = os.path.join(
-            dataset.dataset_folder, category_id, modelname, 
-            cfg['data']['watertight_file'])
-        out_file_dict['gt'] = modelpath
-
     if generate_mesh:
         t0 = time.time()
-        if cfg['generation']['sliding_window']:
-            if it == 0:
-                print('Process scenes in a sliding-window manner')
-            out = generator.generate_mesh_sliding(data)
-        else:
-            out = generator.generate_mesh(data)
+
+        out = generator.generate_mesh(data) # 开始啦
         time_dict['mesh'] = time.time() - t0
 
         # Get statistics
@@ -160,29 +139,6 @@ for it, data in enumerate(tqdm(test_loader)):
         mesh_out_file = os.path.join(mesh_dir, '%s.off' % modelname)
         mesh.export(mesh_out_file)
         out_file_dict['mesh'] = mesh_out_file
-
-    if generate_pointcloud:
-        t0 = time.time()
-        pointcloud = generator.generate_pointcloud(data)
-        time_dict['pcl'] = time.time() - t0
-        pointcloud_out_file = os.path.join(
-            pointcloud_dir, '%s.ply' % modelname)
-        export_pointcloud(pointcloud, pointcloud_out_file)
-        out_file_dict['pointcloud'] = pointcloud_out_file
-
-    if cfg['generation']['copy_input']:
-        # Save inputs
-        if input_type == 'voxels':
-            inputs_path = os.path.join(in_dir, '%s.off' % modelname)
-            inputs = data['inputs'].squeeze(0).cpu()
-            voxel_mesh = VoxelGrid(inputs).to_mesh()
-            voxel_mesh.export(inputs_path)
-            out_file_dict['in'] = inputs_path
-        elif input_type == 'pointcloud' or 'partial_pointcloud':
-            inputs_path = os.path.join(in_dir, '%s.ply' % modelname)
-            inputs = data['inputs'].squeeze(0).cpu().numpy()
-            export_pointcloud(inputs, inputs_path, False)
-            out_file_dict['in'] = inputs_path
 
     # Copy to visualization directory for first vis_n_output samples
     c_it = model_counter[category_id]

@@ -5,6 +5,7 @@ data:
   path: data/demo/synthetic_room_dataset
   pointcloud_n: 87670
   pointcloud_file: pointcloud
+  pointcloud_noise: 0.0 # in test, we don't need noise
   voxels_file: null
   points_file: null
   points_iou_file: null

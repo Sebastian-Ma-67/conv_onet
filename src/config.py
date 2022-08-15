@@ -6,7 +6,7 @@ from src import conv_onet
 
 method_dict = {
     'conv_onet': conv_onet
-}
+} # 目前好像就这一个方法
 
 
 # General config
@@ -67,7 +67,7 @@ def get_model(cfg, device=None, dataset=None):
         dataset (dataset): dataset
     '''
     method = cfg['method']
-    model = method_dict[method].config.get_model(
+    model = conv_onet.config.get_model(
         cfg, device=device, dataset=dataset)
     return model
 
@@ -83,7 +83,7 @@ def get_trainer(model, optimizer, cfg, device):
         device (device): pytorch device
     '''
     method = cfg['method']
-    trainer = method_dict[method].config.get_trainer(
+    trainer = conv_onet.config.get_trainer(
         model, optimizer, cfg, device)
     return trainer
 
@@ -98,7 +98,7 @@ def get_generator(model, cfg, device):
         device (device): pytorch device
     '''
     method = cfg['method']
-    generator = method_dict[method].config.get_generator(model, cfg, device)
+    generator = conv_onet.config.get_generator(model, cfg, device)
     return generator
 
 
@@ -111,10 +111,10 @@ def get_dataset(mode, cfg, return_idx=False):
         cfg (dict): config dictionary
         return_idx (bool): whether to include an ID field
     '''
-    method = cfg['method']
-    dataset_type = cfg['data']['dataset']
-    dataset_folder = cfg['data']['path']
-    categories = cfg['data']['classes']
+    method = cfg['method'] # convonet
+    dataset_type = cfg['data']['dataset'] # Shapes3D
+    dataset_folder = cfg['data']['path'] # data/demo/synthetic_room_dataset
+    categories = cfg['data']['classes'] # 
 
     # Get split
     splits = {
@@ -123,13 +123,13 @@ def get_dataset(mode, cfg, return_idx=False):
         'test': cfg['data']['test_split'],
     }
 
-    split = splits[mode]
+    split = splits[mode] # mdoe = 'test'
 
-    # Create dataset
+    # Create dataset 似乎现在只有一类dataset type: shapes3d
     if dataset_type == 'Shapes3D':
         # Dataset fields
         # Method specific fields (usually correspond to output)
-        fields = method_dict[method].config.get_data_fields(mode, cfg) # {}
+        fields = conv_onet.config.get_data_fields(mode, cfg) # {}
         # Input fields
         inputs_field = get_inputs_field(mode, cfg)
         if inputs_field is not None:
@@ -157,7 +157,7 @@ def get_inputs_field(mode, cfg):
         mode (str): the mode which is used
         cfg (dict): config dictionary
     '''
-    input_type = cfg['data']['input_type']
+    input_type = cfg['data']['input_type'] # input_type: pointcloud
 
     if input_type is None:
         inputs_field = None
@@ -165,38 +165,12 @@ def get_inputs_field(mode, cfg):
         transform = transforms.Compose([
             data.SubsamplePointcloud(cfg['data']['pointcloud_n']),
             data.PointcloudNoise(cfg['data']['pointcloud_noise'])
-        ])
+        ]) # 这里只是初始化
         inputs_field = data.PointCloudField(
-            cfg['data']['pointcloud_file'], transform,
-            multi_files= cfg['data']['multi_files']
-        )
-    elif input_type == 'partial_pointcloud':
-        transform = transforms.Compose([
-            data.SubsamplePointcloud(cfg['data']['pointcloud_n']),
-            data.PointcloudNoise(cfg['data']['pointcloud_noise'])
-        ])
-        inputs_field = data.PartialPointCloudField(
-            cfg['data']['pointcloud_file'], transform,
-            multi_files= cfg['data']['multi_files']
-        )
-    elif input_type == 'pointcloud_crop':
-        transform = transforms.Compose([
-            data.SubsamplePointcloud(cfg['data']['pointcloud_n']),
-            data.PointcloudNoise(cfg['data']['pointcloud_noise'])
-        ])
-    
-        inputs_field = data.PatchPointCloudField(
             cfg['data']['pointcloud_file'], 
             transform,
-            multi_files= cfg['data']['multi_files'],
-        )
-    
-    elif input_type == 'voxels':
-        inputs_field = data.VoxelsField(
-            cfg['data']['voxels_file']
-        )
-    elif input_type == 'idx':
-        inputs_field = data.IndexField()
+            multi_files= cfg['data']['multi_files']
+        ) # 这里只是初始化
     else:
         raise ValueError(
             'Invalid input type (%s)' % input_type)

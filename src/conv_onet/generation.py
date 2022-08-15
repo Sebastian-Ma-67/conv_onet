@@ -44,6 +44,7 @@ class Generator3D(object):
                  vol_info = None,
                  vol_bound = None,
                  simplify_nfaces=None):
+        
         self.model = model.to(device)
         self.points_batch_size = points_batch_size # 好像这个直接给默认了，我看外面的调用接口也没有进行参数指定
         self.refinement_step = refinement_step # 这个也是，直接使用的默认值
@@ -77,19 +78,14 @@ class Generator3D(object):
         kwargs = {}
 
         t0 = time.time()
-        
-        # obtain features for all crops
-        if self.vol_bound is not None:
-            self.get_crop_bound(inputs)
-            c = self.encode_crop(inputs, device)
-        else: # input the entire volume
-            inputs = add_key(inputs, data.get('inputs.ind'), 'points', 'index', device=device)
-            t0 = time.time()
-            with torch.no_grad():
-                c = self.model.encode_inputs(inputs)
+
+        inputs = add_key(inputs, data.get('inputs.ind'), 'points', 'index', device=device)
+        t0 = time.time()
+        with torch.no_grad():
+            c = self.model.encode_inputs(inputs) # （1）先进行encode
         stats_dict['time (encode inputs)'] = time.time() - t0
         
-        mesh = self.generate_from_latent(c, stats_dict=stats_dict, **kwargs)
+        mesh = self.generate_from_latent(c, stats_dict=stats_dict, **kwargs) # （2）然后从encoded之后的latent中decode出occupancy
 
         if return_stats:
             return mesh, stats_dict
@@ -131,7 +127,7 @@ class Generator3D(object):
                 pointsf = box_size * (pointsf - 0.5)
                 pointsf = torch.FloatTensor(pointsf).to(self.device)
                 # Evaluate model and update
-                values = self.eval_points(pointsf, c, **kwargs).cpu().numpy()
+                values = self.eval_points(pointsf, c, **kwargs).cpu().numpy() # [35937], 9130, 40859,13634,12355, 8756, 5889
                 values = values.astype(np.float64)
                 mesh_extractor.update(points, values)
                 points = mesh_extractor.query()
@@ -160,7 +156,7 @@ class Generator3D(object):
                 occ_hat = self.model.decode(pi, c, **kwargs).logits
             occ_hats.append(occ_hat.squeeze(0).detach().cpu())
         
-        occ_hat = torch.cat(occ_hats, dim=0)
+        occ_hat = torch.cat(occ_hats, dim=0) # [35937]
         return occ_hat
 
     def extract_mesh(self, occ_hat, encoded_features=None, stats_dict=dict()):

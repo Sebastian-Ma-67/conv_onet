@@ -89,7 +89,7 @@ for it, data in enumerate(tqdm(test_loader)):
     except AttributeError:
         model_dict = {'model': str(idx), 'category': 'n/a'}
 
-    modelname = model_dict['model']
+    data_name = model_dict['model']
     category_id = model_dict['category']
 
     try:
@@ -116,13 +116,13 @@ for it, data in enumerate(tqdm(test_loader)):
         'idx': idx,
         'class id': category_id,
         'class name': category_name,
-        'modelname': modelname,
+        'data_name': data_name,
     }
     eval_dicts.append(eval_dict)
 
     # Evaluate mesh
     if cfg['test']['eval_mesh']:
-        mesh_file = os.path.join(mesh_dir, '%s.off' % modelname)
+        mesh_file = os.path.join(mesh_dir, '%s.off' % data_name)
 
         if os.path.exists(mesh_file):
             try:
@@ -139,7 +139,7 @@ for it, data in enumerate(tqdm(test_loader)):
     # Evaluate point cloud
     if cfg['test']['eval_pointcloud']:
         pointcloud_file = os.path.join(
-            pointcloud_dir, '%s.ply' % modelname)
+            pointcloud_dir, '%s.ply' % data_name)
 
         if os.path.exists(pointcloud_file):
             pointcloud = load_pointcloud(pointcloud_file)

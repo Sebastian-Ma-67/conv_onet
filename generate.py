@@ -39,15 +39,15 @@ if vis_n_outputs is None:
 dataset = config.get_dataset('test', cfg, return_idx=True)
 
 # Model
-model = config.get_model(cfg, device=device, dataset=dataset)
+network = config.get_network(cfg, device=device, dataset=dataset) # 这个model 就是个ConvolutionalOccupancyNetwork
 # Generate
-model.eval()
+network.eval() # 将该网络改成非训练模式
 
-checkpoint_io = CheckpointIO(checkpoint_dir, model=model)
+checkpoint_io = CheckpointIO(checkpoint_dir, model=network)
 checkpoint_io.load(cfg['test']['model_file'])
 
 # Generator
-generator = config.get_generator(model, cfg, device=device)
+generator = config.get_generator(network, cfg, device=device)
 
 # Determine what to generate
 generate_mesh = cfg['generation']['generate_mesh']
@@ -74,12 +74,12 @@ for it, data in enumerate(tqdm(test_loader)):
     idx = data['idx'].item()
 
     try:
-        model_dict = dataset.get_model_dict(idx)
+        data_dict = dataset.get_model_dict(idx)
     except AttributeError:
-        model_dict = {'model': str(idx), 'category': 'n/a'}
+        data_dict = {'model': str(idx), 'category': 'n/a'}
     
-    modelname = model_dict['model']
-    category_id = model_dict.get('category', 'n/a')
+    data_name = data_dict['model']
+    category_id = data_dict.get('category', 'n/a')
 
     try:
         category_name = dataset.metadata[category_id].get('name', 'n/a')
@@ -115,7 +115,7 @@ for it, data in enumerate(tqdm(test_loader)):
         'idx': idx,
         'class id': category_id,
         'class name': category_name,
-        'modelname': modelname,
+        'data_name': data_name,
     }
     time_dicts.append(time_dict)
 
@@ -136,7 +136,7 @@ for it, data in enumerate(tqdm(test_loader)):
         time_dict.update(stats_dict)
 
         # Write output
-        mesh_out_file = os.path.join(mesh_dir, '%s.off' % modelname)
+        mesh_out_file = os.path.join(mesh_dir, '%s.off' % data_name)
         mesh.export(mesh_out_file)
         out_file_dict['mesh'] = mesh_out_file
 

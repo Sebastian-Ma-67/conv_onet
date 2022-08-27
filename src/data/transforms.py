@@ -14,18 +14,18 @@ class PointcloudNoise(object):
     def __init__(self, stddev):
         self.stddev = stddev
 
-    def __call__(self, data):
+    def __call__(self, points_with_normals):
         ''' Calls the transformation.
 
         Args:
             data (dictionary): data dictionary
         '''
-        data_out = data.copy()
-        points = data[None]
-        noise = self.stddev * np.random.randn(*points.shape)
-        noise = noise.astype(np.float32)
-        data_out[None] = points + noise
-        return data_out
+        points_with_normals_with_noise = points_with_normals.copy()
+        points_tmp = points_with_normals['points']
+        noise_tmp = self.stddev * np.random.randn(*points_tmp.shape)
+        noise_tmp = noise_tmp.astype(np.float32)
+        points_with_normals_with_noise['points'] = points_tmp + noise_tmp
+        return points_with_normals_with_noise
 
 class SubsamplePointcloud(object):
     ''' Point cloud subsampling transformation class.
@@ -38,21 +38,23 @@ class SubsamplePointcloud(object):
     def __init__(self, N):
         self.N = N
 
-    def __call__(self, data):
+    def __call__(self, points_with_normals):
         ''' Calls the transformation.
 
         Args:
             data (dict): data dictionary
         '''
-        data_out = data.copy()
-        points = data[None]
-        normals = data['normals']
+        points_with_normals_out = points_with_normals.copy()
+        points = points_with_normals['points']
+        normals = points_with_normals['normals']
 
+
+        np.random.seed(0) # 这里我们先让种子固定，方便测试
         indices = np.random.randint(points.shape[0], size=self.N)
-        data_out[None] = points[indices, :]
-        data_out['normals'] = normals[indices, :]
+        points_with_normals_out['points'] = points[indices, :]
+        points_with_normals_out['normals'] = normals[indices, :]
 
-        return data_out
+        return points_with_normals_out
 
 
 class SubsamplePoints(object):

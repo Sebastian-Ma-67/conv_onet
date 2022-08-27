@@ -58,7 +58,7 @@ def update_recursive(dict1, dict2):
 
 
 # Models
-def get_model(cfg, device=None, dataset=None):
+def get_network(cfg, device=None, dataset=None):
     ''' Returns the model instance.
 
     Args:
@@ -67,7 +67,7 @@ def get_model(cfg, device=None, dataset=None):
         dataset (dataset): dataset
     '''
     method = cfg['method']
-    model = conv_onet.config.get_model(
+    model = conv_onet.config.get_network(
         cfg, device=device, dataset=dataset)
     return model
 

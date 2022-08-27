@@ -274,12 +274,12 @@ class PointCloudField(Field):
 
     Args:
         file_name (str): file name
-        transform (list): list of transformations applied to data points
+        transform_methods (list): list of transformations applied to data points
         multi_files (callable): number of files
     '''
-    def __init__(self, file_name, transform=None, multi_files=None):
+    def __init__(self, file_name, transform_methods=None, multi_files=None):
         self.file_name = file_name
-        self.transform = transform
+        self.points_transform = transform_methods
         self.multi_files = multi_files
 
     def load(self, model_path, idx, category):
@@ -293,6 +293,7 @@ class PointCloudField(Field):
         if self.multi_files is None:
             file_path = os.path.join(model_path, self.file_name)
         else:
+            np.random.seed(0) # 这里我们先让种子固定，方便测试
             num = np.random.randint(self.multi_files)
             file_path = os.path.join(model_path, self.file_name, '%s_%02d.npz' % (self.file_name, num))
 
@@ -301,15 +302,15 @@ class PointCloudField(Field):
         points = pointcloud_dict['points'].astype(np.float32)
         normals = pointcloud_dict['normals'].astype(np.float32)
         
-        data = {
-            None: points,
+        points_with_normals = {
+            'points': points, # 这里为什么起名为none，也没解释清楚，我觉的不好,我还是把他改成‘points’吧
             'normals': normals,
         }
 
-        if self.transform is not None:
-            data = self.transform(data)
+        if self.points_transform is not None:
+            points_with_normals = self.points_transform(points_with_normals) # 其实这里我们只是简单地进行另一个随机采样，以及添加了高斯噪声（暂时sigma=0）
 
-        return data
+        return points_with_normals
 
     def check_complete(self, files):
         ''' Check if field is complete.

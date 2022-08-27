@@ -63,7 +63,7 @@ class Generator3D(object):
         if vol_info is not None:
             self.input_vol, _, _ = vol_info
         
-    def generate_mesh(self, data, return_stats=True):
+    def generate_mesh(self, points_with_normals, return_stats=True):
         ''' Generates the output mesh.
 
         Args:
@@ -74,25 +74,25 @@ class Generator3D(object):
         device = self.device
         stats_dict = {}
 
-        inputs = data.get('inputs', torch.empty(1, 0)).to(device)
+        points = points_with_normals.get('inputs.points', torch.empty(1, 0)).to(device)
         kwargs = {}
 
         t0 = time.time()
 
-        inputs = add_key(inputs, data.get('inputs.ind'), 'points', 'index', device=device)
+        points = add_key(points, points_with_normals.get('input.points.ind'), 'points', 'index', device=device) # 当前的代码好像直接返回points了，不知道原始代码是什么情况
         t0 = time.time()
         with torch.no_grad():
-            c = self.model.encode_inputs(inputs) # （1）先进行encode
+            encoded_features = self.model.encode_inputs(points) # （1）先进行encode
         stats_dict['time (encode inputs)'] = time.time() - t0
         
-        mesh = self.generate_from_latent(c, stats_dict=stats_dict, **kwargs) # （2）然后从encoded之后的latent中decode出occupancy
+        mesh = self.generate_from_latent(encoded_features, stats_dict=stats_dict, **kwargs) # （2）然后从encoded之后的latent中decode出occupancy
 
         if return_stats:
             return mesh, stats_dict
         else:
             return mesh
     
-    def generate_from_latent(self, c=None, stats_dict={}, **kwargs):
+    def generate_from_latent(self, encoded_features=None, stats_dict={}, **kwargs):
         ''' Generates mesh from latent.
             Works for shapes normalized to a unit cube
 
@@ -109,51 +109,51 @@ class Generator3D(object):
         # Shortcut
         if self.upsampling_steps == 0:
             nx = self.resolution0
-            pointsf = box_size * make_3d_grid(
+            query_point_sf = box_size * make_3d_grid(
                 (-0.5,)*3, (0.5,)*3, (nx,)*3
             )
 
-            values = self.eval_points(pointsf, c, **kwargs).cpu().numpy()
+            values = self.eval_points(query_point_sf, encoded_features, **kwargs).cpu().numpy()
             value_grid = values.reshape(nx, nx, nx)
         else:
             mesh_extractor = MISE(
                 self.resolution0, self.upsampling_steps, threshold)
 
-            points = mesh_extractor.query()
-            while points.shape[0] != 0:
+            query_points = mesh_extractor.query()
+            while query_points.shape[0] != 0:
                 # Query points
-                pointsf = points / mesh_extractor.resolution # 应该是point surface
+                query_point_sf = query_points / mesh_extractor.resolution # 应该是point surface
                 # Normalize to bounding box
-                pointsf = box_size * (pointsf - 0.5)
-                pointsf = torch.FloatTensor(pointsf).to(self.device)
+                query_point_sf = box_size * (query_point_sf - 0.5)
+                query_point_sf = torch.FloatTensor(query_point_sf).to(self.device)
                 # Evaluate model and update
-                values = self.eval_points(pointsf, c, **kwargs).cpu().numpy() # [35937], 9130, 40859,13634,12355, 8756, 5889
+                values = self.eval_points(query_point_sf, encoded_features, **kwargs).cpu().numpy() # [35937], 9130, 40859,13634,12355, 8756, 5889
                 values = values.astype(np.float64)
-                mesh_extractor.update(points, values)
-                points = mesh_extractor.query()
+                mesh_extractor.update(query_points, values)
+                query_points = mesh_extractor.query()
 
             value_grid = mesh_extractor.to_dense()
 
         # Extract mesh
         stats_dict['time (eval points)'] = time.time() - t0
 
-        mesh = self.extract_mesh(value_grid, c, stats_dict=stats_dict)
+        mesh = self.extract_mesh(value_grid, encoded_features, stats_dict=stats_dict)
         return mesh
         
 
-    def eval_points(self, p, c=None, vol_bound=None, **kwargs):
+    def eval_points(self, query_points, encoded_features=None, vol_bound=None, **kwargs):
         ''' Evaluates the occupancy values for the points.
 
         Args:
             p (tensor): points 
             c (tensor): encoded feature volumes
         '''
-        p_split = torch.split(p, self.points_batch_size) # 将 p 按照每份 100,000 个点进行分割
+        query_points_split = torch.split(query_points, self.points_batch_size) # 将 p 按照每份 100,000 个点进行分割
         occ_hats = []
-        for pi in p_split:
-            pi = pi.unsqueeze(0).to(self.device)
+        for query_point_i in query_points_split:
+            query_point_i = query_point_i.unsqueeze(0).to(self.device)
             with torch.no_grad():
-                occ_hat = self.model.decode(pi, c, **kwargs).logits
+                occ_hat = self.model.decode(query_point_i, encoded_features, **kwargs).logits
             occ_hats.append(occ_hat.squeeze(0).detach().cpu())
         
         occ_hat = torch.cat(occ_hats, dim=0) # [35937]

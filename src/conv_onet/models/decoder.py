@@ -57,21 +57,18 @@ class LocalDecoder(nn.Module):
         return c
 
 
-    def forward(self, p, c_plane, **kwargs):
+    def forward(self, query_points, encoded_features, **kwargs):
         if self.c_dim != 0:
-            plane_type = list(c_plane.keys())
-            c = 0
-            if 'grid' in plane_type:
-                c += self.sample_grid_feature(p, c_plane['grid'])
+            grid_sampled_features = self.sample_grid_feature(query_points, encoded_features['grid'])
 
-            c = c.transpose(1, 2) # [1, 35937, 3]
+            grid_sampled_features = grid_sampled_features.transpose(1, 2) # [1, 35937, 3]
 
-        p = p.float() # [1, 35937, 3]
-        net = self.fc_p(p) # [1, 35937, 32] / 3->32
+        query_points = query_points.float() # [1, 35937, 3]
+        net = self.fc_p(query_points) # [1, 35937, 32] / 3->32
 
         for i in range(self.n_blocks):
             if self.c_dim != 0:
-                net = net + self.fc_c[i](c) # [1, 35937, 32]
+                net = net + self.fc_c[i](grid_sampled_features) # [1, 35937, 32]
 
             net = self.blocks[i](net)
 

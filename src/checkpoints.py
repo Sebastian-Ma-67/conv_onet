@@ -2,7 +2,7 @@ import os
 import urllib
 import torch
 from torch.utils import model_zoo
-
+import pickle
 
 class CheckpointIO(object):
     ''' CheckpointIO class.

@@ -57,12 +57,12 @@ class ConvolutionalOccupancyNetwork(nn.Module):
         '''
 
         if self.encoder is not None:
-            c = self.encoder(inputs)
+            features = self.encoder(inputs)
         else:
             # Return inputs? 忽略好吧
-            c = torch.empty(inputs.size(0), 0)
+            features = torch.empty(inputs.size(0), 0)
 
-        return c
+        return features
 
     def decode(self, p, c, **kwargs):
         ''' Returns occupancy probabilities for the sampled points.

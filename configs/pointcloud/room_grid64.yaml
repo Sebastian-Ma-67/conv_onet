@@ -31,7 +31,7 @@ model:
   c_dim: 32
 training:
   out_dir: out/pointcloud/room_grid64
-  batch_size: 6
+  batch_size: 1
   model_selection_metric: iou
   model_selection_mode: maximize
   print_every: 100

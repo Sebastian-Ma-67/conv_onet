@@ -3,7 +3,7 @@ inherit_from: configs/pointcloud/room_grid64.yaml
 data:
   classes: ['']
   path: data/demo/synthetic_room_dataset
-  pointcloud_n: 87670
+  pointcloud_n: 10000
   pointcloud_file: pointcloud
   pointcloud_noise: 0.0 # in test, we don't need noise
   voxels_file: null

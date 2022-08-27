@@ -17,7 +17,7 @@ get model, trainer, generator, data_fields
 
 
 '''
-def get_model(cfg, device=None, dataset=None, **kwargs):
+def get_network(cfg, device=None, dataset=None, **kwargs):
     ''' Return the Occupancy Network model.
 
     Args:

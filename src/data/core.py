@@ -71,7 +71,7 @@ class Shapes3dDataset(data.Dataset):
                 self.metadata = yaml.load(f)
         else:
             self.metadata = {
-                c: {'id': c, 'name': 'n/a'} for c in categories
+                c: {'id': c, 'name': 'n/a'} for c in categories # 这些参数都不知道有啥用？？？
             } 
         
         # Set index
@@ -120,17 +120,17 @@ class Shapes3dDataset(data.Dataset):
         c_idx = self.metadata[category]['idx']
 
         model_path = os.path.join(self.dataset_folder, category, model)
-        data = {}
+        pointcloud_data = {}
 
         if self.cfg['data']['input_type'] == 'pointcloud_crop':
             info = self.get_vol_info(model_path)
-            data['pointcloud_crop'] = True
+            pointcloud_data['pointcloud_crop'] = True
         else:
             info = c_idx
         
         for field_name, field in self.fields.items():
             try:
-                field_data = field.load(model_path, idx, info)
+                points_with_normals = field.load(model_path, idx, info)
             except Exception:
                 if self.no_except:
                     logger.warn(
@@ -141,19 +141,19 @@ class Shapes3dDataset(data.Dataset):
                 else:
                     raise
 
-            if isinstance(field_data, dict):
-                for k, v in field_data.items():
+            if isinstance(points_with_normals, dict): # 判断是不是字典类型，正常情况下，里面应该是有一个 'points' 和一个'normals'
+                for k, v in points_with_normals.items():
                     if k is None:
-                        data[field_name] = v
+                        pointcloud_data[field_name] = v # 
                     else:
-                        data['%s.%s' % (field_name, k)] = v
+                        pointcloud_data['%s.%s' % (field_name, k)] = v
             else:
-                data[field_name] = field_data
+                pointcloud_data[field_name] = points_with_normals
 
         if self.transform is not None:
-            data = self.transform(data)
+            pointcloud_data = self.transform(pointcloud_data)
 
-        return data
+        return pointcloud_data
     
     def get_vol_info(self, model_path):
         ''' Get crop information
@@ -207,18 +207,18 @@ class Shapes3dDataset(data.Dataset):
     def get_model_dict(self, idx):
         return self.models[idx]
 
-    def test_model_complete(self, category, model):
+    def test_model_complete(self, category, data):
         ''' Tests if model is complete.
 
         Args:
-            model (str): modelname
+            data (str): data_name
         '''
-        model_path = os.path.join(self.dataset_folder, category, model)
-        files = os.listdir(model_path)
+        data_path = os.path.join(self.dataset_folder, category, data)
+        files = os.listdir(data_path)
         for field_name, field in self.fields.items():
             if not field.check_complete(files):
                 logger.warn('Field "%s" is incomplete: %s'
-                            % (field_name, model_path))
+                            % (field_name, data_path))
                 return False
 
         return True

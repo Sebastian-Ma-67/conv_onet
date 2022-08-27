@@ -40,7 +40,7 @@ class LocalPoolPointnet(nn.Module):
         ])
         self.fc_c = nn.Linear(hidden_dim, c_dim)
 
-        self.actvn = nn.ReLU()
+        self.actvn_relu = nn.ReLU()
         self.hidden_dim = hidden_dim
 
         if unet:
@@ -65,50 +65,50 @@ class LocalPoolPointnet(nn.Module):
         else:
             raise ValueError('incorrect scatter type')
 
-    def generate_grid_features(self, p, c):
-        p_nor = normalize_3d_coordinate(p.clone(), padding=self.padding)
-        index = coordinate2index(p_nor, self.reso_grid, coord_type='3d')
+    def generate_grid_features(self, points_raw, features):
+        p_normalize = normalize_3d_coordinate(points_raw.clone(), padding=self.padding)
+        index = coordinate2index(p_normalize, self.reso_grid, coord_type='3d')
         # scatter grid features from points
-        fea_grid = c.new_zeros(p.size(0), self.c_dim, self.reso_grid**3)
-        c = c.permute(0, 2, 1)
-        fea_grid = scatter_mean(c, index, out=fea_grid) # B x C x reso^3
-        fea_grid = fea_grid.reshape(p.size(0), self.c_dim, self.reso_grid, self.reso_grid, self.reso_grid) # sparce matrix (B x 512 x reso x reso)
+        fea_grid = features.new_zeros(points_raw.size(0), self.c_dim, self.reso_grid**3)
+        features = features.permute(0, 2, 1)
+        fea_grid = scatter_mean(features, index, out=fea_grid) # B x C x reso^3
+        fea_grid = fea_grid.reshape(points_raw.size(0), self.c_dim, self.reso_grid, self.reso_grid, self.reso_grid) # sparce matrix (B x 32 x reso x reso x reso)
 
         if self.unet3d is not None:
             fea_grid = self.unet3d(fea_grid)
 
         return fea_grid
 
-    def pool_local(self, xy, index, c):
-        bs, fea_dim = c.size(0), c.size(2)
-        keys = xy.keys()
+    def pool_local(self, pos, index, features):
+        bs, feature_dim = features.size(0), features.size(2)
+        keys = pos.keys()
 
-        c_out = 0
+        features_out = 0
         for key in keys:
-            # scatter plane features from points
+            # scatter plane features from points???
             if key == 'grid':
-                fea = self.scatter(c.permute(0, 2, 1), index[key], dim_size=self.reso_grid**3)
+                features = self.scatter(features.permute(0, 2, 1), index[key], dim_size=self.reso_grid**3) # 根据点集的features，得到64*64*64个网格的features； [1,32,64^3]
                 
             if self.scatter == scatter_max:
-                fea = fea[0]
+                features = features[0]
             # gather feature back to points
-            fea = fea.gather(dim=2, index=index[key].expand(-1, fea_dim, -1))
-            c_out += fea
-        return c_out.permute(0, 2, 1)
+            features = features.gather(dim=2, index=index[key].expand(-1, feature_dim, -1)) # 然后根据点原始的索引，得到原始点索引位置的features [1,32,10000]
+            features_out += features
+        return features_out.permute(0, 2, 1)
 
 
-    def forward(self, p):
-        batch_size, T, D = p.size()
+    def forward(self, points_raw):
+        batch_size, T, D = points_raw.size()
 
         # acquire the index for each point
         coord = {}
         index = {}
         
         if 'grid' in self.plane_type:
-            coord['grid'] = normalize_3d_coordinate(p.clone(), padding=self.padding)
+            coord['grid'] = normalize_3d_coordinate(points_raw.clone(), padding=self.padding)
             index['grid'] = coordinate2index(coord['grid'], self.reso_grid, coord_type='3d')
         
-        net = self.fc_pos(p)
+        net = self.fc_pos(points_raw)
 
         net = self.blocks[0](net)
         for block in self.blocks[1:]:
@@ -116,10 +116,10 @@ class LocalPoolPointnet(nn.Module):
             net = torch.cat([net, pooled], dim=2)
             net = block(net)
 
-        c = self.fc_c(net)
+        features = self.fc_c(net)
 
         fea = {}
         if 'grid' in self.plane_type:
-            fea['grid'] = self.generate_grid_features(p, c)
+            fea['grid'] = self.generate_grid_features(points_raw, features)
 
         return fea

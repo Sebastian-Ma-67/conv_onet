@@ -92,7 +92,7 @@ for i in range(len(vis_loader)):
     model_counter[category_id] += 1
 
 # Model
-model = config.get_model(cfg, device=device, dataset=train_dataset)
+model = config.get_network(cfg, device=device, dataset=train_dataset)
 
 # Generator
 generator = config.get_generator(model, cfg, device=device)
@@ -172,6 +172,7 @@ while True:
             print('Backup checkpoint')
             checkpoint_io.save('model_%d.pt' % it, epoch_it=epoch_it, it=it,
                                loss_val_best=metric_val_best)
+
         # Run validation
         if validate_every > 0 and (it % validate_every) == 0:
             eval_dict = trainer.evaluate(val_loader)

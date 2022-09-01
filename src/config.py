@@ -2,7 +2,9 @@ import yaml
 from torchvision import transforms
 from src import data
 from src import conv_onet
-
+# import sys
+# sys.path.append('.')
+# from data import datasetpc #可以考虑把datasetpc 放在某个包下面，比如和core放在一起
 
 method_dict = {
     'conv_onet': conv_onet
@@ -98,12 +100,12 @@ def get_generator(model, cfg, device):
         device (device): pytorch device
     '''
     method = cfg['method']
-    generator = conv_onet.config.get_generator(model, cfg, device)
+    generator = conv_onet.config.get_init_generator(model, cfg, device)
     return generator
 
 
 # Datasets
-def get_dataset(mode, cfg, return_idx=False):
+def init_dataset(mode, cfg, train=False, out_bool=False, out_float=False, return_idx=False):
     ''' Returns the dataset.
 
     Args:
@@ -115,6 +117,14 @@ def get_dataset(mode, cfg, return_idx=False):
     dataset_type = cfg['data']['dataset'] # Shapes3D
     dataset_folder = cfg['data']['path'] # data/demo/synthetic_room_dataset
     categories = cfg['data']['classes'] # 
+    data_dir = cfg['data']['data_dir']
+
+
+    point_num = cfg['data']['point_num']
+    grid_size = cfg['data']['grid_size']
+    pooling_radius = 2 #for pointcloud input
+    input_type = cfg['data']['input_type']
+
 
     # Get split
     splits = {
@@ -126,52 +136,57 @@ def get_dataset(mode, cfg, return_idx=False):
     split = splits[mode] # mdoe = 'test'
 
     # Create dataset 似乎现在只有一类dataset type: shapes3d
-    if dataset_type == 'Shapes3D':
-        # Dataset fields
-        # Method specific fields (usually correspond to output)
-        fields = conv_onet.config.get_data_fields(mode, cfg) # {}
-        # Input fields
-        inputs_field = get_inputs_field(mode, cfg)
-        if inputs_field is not None:
-            fields['inputs'] = inputs_field
 
-        if return_idx:
-            fields['idx'] = data.IndexField() # 这个类似乎还没有开发完
+    # Dataset fields
+    # Method specific fields (usually correspond to output)
+    points_fields = conv_onet.config.init_points_fields(mode, cfg) # points.npz
+    
+    # Input fields
+    point_cloud_field = init_point_cloud_field(mode, cfg) # pointcloud.npz
+    if point_cloud_field is not None:
+        points_fields['normal_points'] = point_cloud_field             
 
-        dataset = data.Shapes3dDataset(
-            dataset_folder, fields,
-            split=split,
-            categories=categories,
-            cfg = cfg
-        )
-    else:
-        raise ValueError('Invalid dataset "%s"' % cfg['data']['dataset'])
+    if return_idx:
+        points_fields['idx'] = data.IndexField() # 这个类似乎还没有开发完
+
+    # shapes_3d_dataset = data.Shapes3dDataset(
+    #     dataset_folder,
+    #     points_fields,
+    #     split=split,
+    #     categories=categories,
+    #     cfg = cfg
+    # )
+    
+    shapes_3d_dataset = data.ABC_pointcloud_hdf5(
+        data_dir,
+        point_num,
+        grid_size,
+        pooling_radius,
+        input_type,
+        train,
+        out_bool=out_bool,
+        out_float=out_float        
+    )
  
-    return dataset
+    return shapes_3d_dataset
 
 
-def get_inputs_field(mode, cfg):
+def init_point_cloud_field(mode, cfg):
     ''' Returns the inputs fields.
 
     Args:
         mode (str): the mode which is used
         cfg (dict): config dictionary
     '''
-    input_type = cfg['data']['input_type'] # input_type: pointcloud
 
-    if input_type is None:
-        inputs_field = None
-    elif input_type == 'pointcloud':
-        transform = transforms.Compose([
-            data.SubsamplePointcloud(cfg['data']['pointcloud_n']),
-            data.PointcloudNoise(cfg['data']['pointcloud_noise'])
-        ]) # 这里只是初始化
-        inputs_field = data.PointCloudField(
-            cfg['data']['pointcloud_file'], 
-            transform,
-            multi_files= cfg['data']['multi_files']
-        ) # 这里只是初始化
-    else:
-        raise ValueError(
-            'Invalid input type (%s)' % input_type)
-    return inputs_field
+    pointcloud_subsample = data.PointcloudSubsample(cfg['data']['pointcloud_n'])
+    pointcloud_noise_transform = data.PointcloudNoiseTransform(cfg['data']['pointcloud_noise'])
+    total_transforms = transforms.Compose([pointcloud_subsample, pointcloud_noise_transform]) # 这里只是初始化
+    
+    point_cloud_field = data.PointCloudField(
+        cfg['data']['pointcloud_file'], 
+        total_transforms,
+        multi_files= cfg['data']['multi_files']
+    ) # 这里只是初始化
+
+    return point_cloud_field

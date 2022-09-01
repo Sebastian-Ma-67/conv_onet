@@ -2,7 +2,7 @@ import numpy as np
 
 
 # Transforms
-class PointcloudNoise(object):
+class PointcloudNoiseTransform(object): # 点云噪声化
     ''' Point cloud noise transformation class.
 
     It adds noise to point cloud data.
@@ -27,7 +27,7 @@ class PointcloudNoise(object):
         points_with_normals_with_noise['points'] = points_tmp + noise_tmp
         return points_with_normals_with_noise
 
-class SubsamplePointcloud(object):
+class PointcloudSubsample(object):
     ''' Point cloud subsampling transformation class.
 
     It subsamples the point cloud data.
@@ -57,7 +57,7 @@ class SubsamplePointcloud(object):
         return points_with_normals_out
 
 
-class SubsamplePoints(object):
+class PointsSubsample(object): # occ_points 的 subsample
     ''' Points subsampling transformation class.
 
     It subsamples the points data.
@@ -68,20 +68,20 @@ class SubsamplePoints(object):
     def __init__(self, N):
         self.N = N
 
-    def __call__(self, data):
+    def __call__(self, occ_points):
         ''' Calls the transformation.
 
         Args:
             data (dictionary): data dictionary
         '''
-        points = data[None]
-        occ = data['occ']
+        points = occ_points['points']
+        occ = occ_points['occ']
 
-        data_out = data.copy()
+        data_out = occ_points.copy()
         if isinstance(self.N, int):
             idx = np.random.randint(points.shape[0], size=self.N)
             data_out.update({
-                None: points[idx, :],
+                'points': points[idx, :], # 哦，这里又出现了None
                 'occ':  occ[idx],
             })
         else:
@@ -105,7 +105,7 @@ class SubsamplePoints(object):
             volume = volume.astype(np.float32)
 
             data_out.update({
-                None: points,
+                'points': points,
                 'occ': occ,
                 'volume': volume,
             })

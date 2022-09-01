@@ -34,7 +34,7 @@ else:
 
 # Dataset
 points_field = data.PointsField(
-    cfg['data']['points_iou_file'],
+    cfg['data']['points_iou_file'], # points.npz
     unpackbits=cfg['data']['points_unpackbits'],
     multi_files=cfg['data']['multi_files']
 )

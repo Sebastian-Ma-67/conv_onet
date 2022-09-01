@@ -3,6 +3,7 @@ data:
   input_type: pointcloud
   classes: null
   path: data/ShapeNet
+  pointcloud_file: pointcloud.npz
   pointcloud_n: 3000
   pointcloud_noise: 0.005
   points_subsample: 2048
@@ -10,6 +11,11 @@ data:
   points_iou_file: points.npz
   # points_unpackbits: false
   voxels_file: null
+  point_num: 4096
+  grid_size: 32
+  data_dir: groundtruth/gt_UNDC
+  lr_half_life: 100
+
 model:
   encoder: pointnet_local_pool
   encoder_kwargs:
@@ -28,22 +34,28 @@ model:
     hidden_size: 32
   c_dim: 32
 training:
+  bool: true
+  float: false
   out_dir: out/pointcloud/shapenet_grid32
-  batch_size: 32
+  batch_size: 1 # 32->1
   model_selection_metric: iou
   model_selection_mode: maximize
   print_every: 100
   visualize_every: 10000
-  validate_every: 10000
-  checkpoint_every: 2000
+  validate_every: 10000 # 10000->200
+  checkpoint_every: 2000 # 2000->200
   backup_every: 10000
-  n_workers: 8
-  n_workers_val: 4
+  n_workers: 0 # 8->1
+  n_workers_val: 0 # 4->1
+  epoch: 250
 test:
+  bool: false
+  float: false
   threshold: 0.2
   eval_mesh: true
   eval_pointcloud: false
   model_file: model_best.pt
+  input: null
 generation:
   vis_n_outputs: 2
   refine: false

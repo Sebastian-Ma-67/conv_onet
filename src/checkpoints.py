@@ -56,7 +56,7 @@ class CheckpointIO(object):
         '''
 
         if not os.path.isabs(filename):
-            filename = os.path.join(self.checkpoint_dir, filename)
+            filename = os.path.join(self.checkpoint_dir, filename) # out/pointcloud/model.pt
 
         if os.path.exists(filename):
             print(filename)

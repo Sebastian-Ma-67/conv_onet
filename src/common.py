@@ -302,8 +302,8 @@ def coordinate2index(x, reso, coord_type='2d'):
     x = (x * reso).long()
     if coord_type == '3d': # grid
         index = x[:, :, 0] + reso * (x[:, :, 1] + reso * x[:, :, 2])
-    index = index.unsqueeze(0)
-    # index = index[:, None, :]
+    # index = index.unsqueeze(0) # 这里还真不能这样写，因为这里涉及到batch_size 不等于 1 的情况，如果是1的话，就可以这么写了
+    index = index[:, None, :]
     
     return index
 

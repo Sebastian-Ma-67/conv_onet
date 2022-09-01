@@ -87,13 +87,14 @@ class LocalPoolPointnet(nn.Module):
         for key in keys:
             # scatter plane features from points???
             if key == 'grid':
-                features = self.scatter(features.permute(0, 2, 1), index[key], dim_size=self.reso_grid**3) # 根据点集的features，得到64*64*64个网格的features； [1,32,64^3]
+                features_scatter_out, features_scatter_index = self.scatter(features.permute(0, 2, 1), index[key], dim_size=self.reso_grid**3) # 根据点集的features，得到64*64*64个网格的features； [1,32,64^3]
                 
             if self.scatter == scatter_max:
-                features = features[0]
+                features_scatter = features_scatter_out
             # gather feature back to points
-            features = features.gather(dim=2, index=index[key].expand(-1, feature_dim, -1)) # 然后根据点原始的索引，得到原始点索引位置的features [1,32,10000]
-            features_out += features
+            index_tmp = index[key].expand(-1, feature_dim, -1)
+            features_scatter_gather = features_scatter.gather(dim=2, index=index_tmp) # 然后根据点原始的索引，得到原始点索引位置的features [1,32,10000]
+            features_out += features_scatter_gather
         return features_out.permute(0, 2, 1)
 
 

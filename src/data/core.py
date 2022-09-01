@@ -53,6 +53,7 @@ class Shapes3dDataset(data.Dataset):
         # Attributes
         self.dataset_folder = dataset_folder
         self.fields = fields
+                
         self.no_except = no_except
         self.transform = transform
         self.cfg = cfg
@@ -75,18 +76,18 @@ class Shapes3dDataset(data.Dataset):
             } 
         
         # Set index
-        for c_idx, c in enumerate(categories):
-            self.metadata[c]['idx'] = c_idx
+        for categories_idx, c in enumerate(categories):
+            self.metadata[c]['idx'] = categories_idx
 
         # Get all models
-        self.models = []
-        for c_idx, c in enumerate(categories):
+        self.datasets = []
+        for categories_idx, c in enumerate(categories):
             subpath = os.path.join(dataset_folder, c)
             if not os.path.isdir(subpath):
                 logger.warning('Category %s does not exist in dataset.' % c)
 
             if split is None:
-                self.models += [
+                self.datasets += [
                     {'category': c, 'model': m} for m in [d for d in os.listdir(subpath) if (os.path.isdir(os.path.join(subpath, d)) and d != '') ]
                 ]
 
@@ -98,7 +99,7 @@ class Shapes3dDataset(data.Dataset):
                 if '' in models_c:
                     models_c.remove('')
 
-                self.models += [
+                self.datasets += [
                     {'category': c, 'model': m}
                     for m in models_c
                 ]
@@ -107,48 +108,51 @@ class Shapes3dDataset(data.Dataset):
     def __len__(self):
         ''' Returns the length of the dataset.
         '''
-        return len(self.models)
+        return len(self.datasets)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx): # 
         ''' Returns an item of the dataset.
 
         Args:
             idx (int): ID of data point
         '''
-        category = self.models[idx]['category']
-        model = self.models[idx]['model']
-        c_idx = self.metadata[category]['idx']
+        category = self.datasets[idx]['category'] # '02691156'
+        category_idx = self.metadata[category]['idx'] # 类别索引
+        single_object = self.datasets[idx]['model'] # '80da27a121142718e15a23e1c3d8f46d'
 
-        model_path = os.path.join(self.dataset_folder, category, model)
+
+        single_sample_path = os.path.join(self.dataset_folder, category, single_object)
         pointcloud_data = {}
 
-        if self.cfg['data']['input_type'] == 'pointcloud_crop':
-            info = self.get_vol_info(model_path)
-            pointcloud_data['pointcloud_crop'] = True
-        else:
-            info = c_idx
+        info = category_idx
         
-        for field_name, field in self.fields.items():
-            try:
-                points_with_normals = field.load(model_path, idx, info)
-            except Exception:
-                if self.no_except:
-                    logger.warn(
-                        'Error occured when loading field %s of model %s'
-                        % (field_name, model)
-                    )
-                    return None
-                else:
-                    raise
-
-            if isinstance(points_with_normals, dict): # 判断是不是字典类型，正常情况下，里面应该是有一个 'points' 和一个'normals'
-                for k, v in points_with_normals.items():
-                    if k is None:
-                        pointcloud_data[field_name] = v # 
-                    else:
+        for field_name, field in self.fields.items(): # 这里面的item 有两个，一个是points ，好像是从3d shape 所占用的空间中采样得到的，另外一个是input，好像是从mesh上采样的                
+            if field_name == 'occ_points':
+                occ_points_fielder = field # 此时，这个field为PointField
+                occ_points_field = occ_points_fielder.load(single_sample_path, idx, info)
+                
+                if isinstance(occ_points_field, dict): # 判断是不是字典类型，正常情况下，里面应该是有一个 'points' 和一个'occ'
+                    for k, v in occ_points_field.items():
                         pointcloud_data['%s.%s' % (field_name, k)] = v
-            else:
-                pointcloud_data[field_name] = points_with_normals
+                
+            if field_name == 'normal_points':
+                iou_occ_points_fielder = field # 此时，这个field为PointCloudField
+                iou_occ_points_field = iou_occ_points_fielder.load(single_sample_path, idx, info)
+                
+                if isinstance(iou_occ_points_field, dict): # 判断是不是字典类型，正常情况下，里面应该是有一个 'points' 和一个'normals'
+                    for k, v in iou_occ_points_field.items():
+                        pointcloud_data['%s.%s' % (field_name, k)] = v
+                        
+            if field_name == 'iou_occ_points':
+                iou_occ_points_fielder = field # 此时，这个field为PointCloudField
+                iou_occ_points_field = iou_occ_points_fielder.load(single_sample_path, idx, info)
+                
+                if isinstance(iou_occ_points_field, dict): # 判断是不是字典类型，正常情况下，里面应该是有一个 'points' 和一个'normals'
+                    for k, v in iou_occ_points_field.items():
+                        pointcloud_data['%s.%s' % (field_name, k)] = v
+            if field_name == 'idx':
+                idx_field = field.load(single_sample_path, idx, info)
+                pointcloud_data[field_name] = idx_field
 
         if self.transform is not None:
             pointcloud_data = self.transform(pointcloud_data)
@@ -205,7 +209,7 @@ class Shapes3dDataset(data.Dataset):
         return vol_info
     
     def get_model_dict(self, idx):
-        return self.models[idx]
+        return self.datasets[idx]
 
     def test_model_complete(self, category, data):
         ''' Tests if model is complete.

@@ -74,12 +74,12 @@ class Generator3D(object):
         device = self.device
         stats_dict = {}
 
-        points = points_with_normals.get('inputs.points', torch.empty(1, 0)).to(device)
+        points = points_with_normals.get('normal_points', torch.empty(1, 0)).to(device)
         kwargs = {}
 
         t0 = time.time()
 
-        points = add_key(points, points_with_normals.get('input.points.ind'), 'points', 'index', device=device) # 当前的代码好像直接返回points了，不知道原始代码是什么情况
+        points = add_key(points, points_with_normals.get('input_points.ind'), 'points', 'index', device=device) # 当前的代码好像直接返回points了，不知道原始代码是什么情况
         t0 = time.time()
         with torch.no_grad():
             encoded_features = self.model.encode_inputs(points) # （1）先进行encode

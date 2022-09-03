@@ -82,8 +82,8 @@ if not os.path.exists(out_dir):
 shutil.copyfile(args.config, os.path.join(out_dir, 'config.yaml')) # 将参数文件同样保存在输出文件夹中
 
 # Dataset
-train_dataset = config.init_dataset('train', cfg, train=True, out_bool=net_bool, out_float=net_float) # 获取训练数据
-val_dataset = config.init_dataset('val', cfg,  train=False, out_bool=True, out_float=True, return_idx=True) # 获取验证数据
+train_dataset = config.init_dataset(cfg, train=True, out_bool=net_bool, out_float=net_float) # 获取训练数据
+val_dataset = config.init_dataset(cfg,  train=False, out_bool=True, out_float=True, return_idx=True) # 获取验证数据
 
 train_loader = torch.utils.data.DataLoader(
     train_dataset, batch_size=batch_size, num_workers=cfg['training']['n_workers'], shuffle=True,
@@ -160,47 +160,36 @@ if net_bool:
 if net_float:
     optimizer = torch.optim.Adam(network_float.parameters())
         
-while True:
-    epoch_it += 1
+# while True:
+epoch_it += 1
 
-    for epoch in range(cfg['training']['epoch']):
+for epoch in range(cfg['training']['epoch']):
+    
+    for batch in train_loader:
+        it += 1
+        loss = trainer.train_step(batch) # 开始训练
+        logger.add_scalar('train/loss', loss, it)
+
+        # Print output
+        if print_every > 0 and (it % print_every) == 0:
+            t = datetime.datetime.now()
+            print('[Epoch %02d] it=%03d, loss=%.4f, time: %.2fs, %02d:%02d'
+                    % (epoch, it, loss, time.time() - t0, t.hour, t.minute))
+
+        # Save checkpoint
+        if (checkpoint_every > 0 and (it % checkpoint_every) == 0):
+            print('Saving checkpoint')
+            checkpoint_io.save('model.pt', epoch_it=epoch, it=it,
+                            loss_val_best=metric_val_best)
         
-        for batch in train_loader:
-            it += 1
-            loss = trainer.train_step(batch) # 训练
-            logger.add_scalar('train/loss', loss, it)
+        # Run validation
+        if validate_every > 0 and (it % validate_every) == 0:
+            eval_dict = trainer.evaluate(val_loader, it)
 
-            # Print output
-            if print_every > 0 and (it % print_every) == 0:
-                t = datetime.datetime.now()
-                print('[Epoch %02d] it=%03d, loss=%.4f, time: %.2fs, %02d:%02d'
-                        % (epoch_it, it, loss, time.time() - t0, t.hour, t.minute))
 
-            # Save checkpoint
-            if (checkpoint_every > 0 and (it % checkpoint_every) == 0):
-                print('Saving checkpoint')
-                checkpoint_io.save('model.pt', epoch_it=epoch_it, it=it,
-                                loss_val_best=metric_val_best)
-            
-            # Run validation
-            if validate_every > 0 and (it % validate_every) == 0:
-                eval_dict = trainer.evaluate(val_loader)
-                metric_val = eval_dict[model_selection_metric]
-                print('Validation metric (%s): %.4f'
-                    % (model_selection_metric, metric_val))
-
-                for k, v in eval_dict.items():
-                    logger.add_scalar('val/%s' % k, v, it)
-
-                if model_selection_sign * (metric_val - metric_val_best) > 0:
-                    metric_val_best = metric_val
-                    print('New best model (loss %.4f)' % metric_val_best)
-                    checkpoint_io.save('model_best.pt', epoch_it=epoch_it, it=it,
-                                    loss_val_best=metric_val_best)
-
-            # Exit if necessary
-            if exit_after > 0 and (time.time() - t0) >= exit_after:
-                print('Time limit reached. Exiting.')
-                checkpoint_io.save('model.pt', epoch_it=epoch_it, it=it,
-                                loss_val_best=metric_val_best)
-                exit(3)
+        # Exit if necessary
+        if exit_after > 0 and (time.time() - t0) >= exit_after:
+            print('Time limit reached. Exiting.')
+            checkpoint_io.save('model.pt', epoch_it=epoch, it=it,
+                            loss_val_best=metric_val_best)
+            exit(3)

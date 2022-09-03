@@ -20,10 +20,10 @@ class ConvolutionalOccupancyNetwork(nn.Module):
         device (device): torch device
     '''
 
-    def __init__(self, decoder, encoder=None, device=None):
+    def __init__(self, encoder=None, device=None):
         super().__init__()
         
-        self.decoder = decoder.to(device)
+        # self.decoder = decoder.to(device)
 
         if encoder is not None:
             self.encoder = encoder.to(device)
@@ -32,7 +32,7 @@ class ConvolutionalOccupancyNetwork(nn.Module):
 
         self._device = device
 
-    def forward(self, p, inputs, sample=True, **kwargs):
+    def forward(self, inputs, **kwargs):
         ''' Performs a forward pass through the network.
 
         Args:
@@ -41,13 +41,14 @@ class ConvolutionalOccupancyNetwork(nn.Module):
             sample (bool): whether to sample for z
         '''
         #############
-        if isinstance(p, dict):
-            batch_size = p['p'].size(0)
-        else:
-            batch_size = p.size(0)
-        c = self.encode_inputs(inputs)
-        p_r = self.decode(p, c, **kwargs)
-        return p_r
+        # if isinstance(p, dict):
+        #     batch_size = p['p'].size(0)
+        # else:
+        #     batch_size = p.size(0)
+        encoded_features = self.encode_inputs(inputs)
+        # p_r = self.decode(p, encoded_features, **kwargs)
+        # return p_r
+        return encoded_features
 
     def encode_inputs(self, inputs):
         ''' Encodes the input.
@@ -64,17 +65,17 @@ class ConvolutionalOccupancyNetwork(nn.Module):
 
         return features
 
-    def decode(self, p, c, **kwargs):
-        ''' Returns occupancy probabilities for the sampled points.
+    # def decode(self, p, c, **kwargs):
+    #     ''' Returns occupancy probabilities for the sampled points.
 
-        Args:
-            p (tensor): points
-            c (tensor): latent conditioned code c
-        '''
+    #     Args:
+    #         p (tensor): points
+    #         c (tensor): latent conditioned code c
+    #     '''
 
-        logits = self.decoder(p, c, **kwargs)
-        p_r = dist.Bernoulli(logits=logits)
-        return p_r
+    #     logits = self.decoder(p, c, **kwargs)
+    #     p_r = dist.Bernoulli(logits=logits)
+    #     return p_r
 
     def to(self, device):
         ''' Puts the model to the device.

@@ -1,3 +1,4 @@
+from cgi import test
 import os
 import numpy as np
 import time
@@ -18,6 +19,7 @@ class ABC_pointcloud_hdf5(torch.utils.data.Dataset):
         # self.KNN_num = KNN_num
         self.pooling_radius = pooling_radius
         self.train = train
+        
         self.input_type = input_type
         self.out_bool = out_bool
         self.out_float = out_float
@@ -44,7 +46,8 @@ class ABC_pointcloud_hdf5(torch.utils.data.Dataset):
                 temp_hdf5_names = []
                 temp_hdf5_gridsizes = []
                 for name in self.hdf5_names:
-                    for grid_size in [32,64]: # 这里为什么要有32 和 64 种分辨率呢？
+                    # for grid_size in [32,64]: # 这里为什么要有32 和 64 种分辨率呢？
+                    for grid_size in [32]: # 这里为什么要有32 和 64 种分辨率呢？                    
                         temp_hdf5_names.append(name)
                         temp_hdf5_gridsizes.append(grid_size)
                 self.hdf5_names = temp_hdf5_names
@@ -86,7 +89,9 @@ class ABC_pointcloud_hdf5(torch.utils.data.Dataset):
                 #64     4096    2048-8192
                 np.random.shuffle(gt_input_)
                 if grid_size==32:
-                    count = np.random.randint(512,2048)
+                    # count = np.random.randint(512,2048)
+                    count = self.input_point_num
+                    
                 elif grid_size==64:
                     count = np.random.randint(2048,8192)
                 gt_input_ = gt_input_[:count]
@@ -110,118 +115,16 @@ class ABC_pointcloud_hdf5(torch.utils.data.Dataset):
             gt_input_ = gt_input_ + np.random.randn(gt_input_.shape[0],gt_input_.shape[1]).astype(np.float32)*0.5
 
 
-
         # 接下来这部分，我着重说一下啊，我们不需要kdtree，也不需要KNN，我们只需要input points [Np, 3], 一个 gt_output_bool 的值，这个值应该是 [32, 32, 32], 有可能是33 
         # 然后，我们拿着这部分数据，把他交给convonet，让他训练，然后用 ndc 的方法计算 loss
         pointcloud_data = {}
-        pointcloud_data['gt_output_bool'] = gt_output_bool_
+        if self.out_bool:
+            pointcloud_data['gt_output_bool'] = gt_output_bool_[:-1, :-1, :-1, :] # 强行舍弃掉边缘的值，使得其变成32x32x32x3
+        if self.out_float:
+            pointcloud_data['gt_output_float'] = gt_output_float_[:-1, :-1, :-1, :] # 强行舍弃掉边缘的值，使得其变成32x32x32x3
         pointcloud_data['input_points'] = gt_input_
-        pointcloud_data['gt_output_bool_query_points'] = 
         
         return pointcloud_data
-
-
-
-
-
-        #point cloud convolution, with KNN
-        #basic building block:
-        #-for each point
-        #-find its K nearest neighbors
-        #-and then use their relative positions to perform convolution
-        #last layer (pooling):
-        #-for each grid cell
-        #-if it is within range to the point cloud
-        #-find K nearest neighbors to the cell center
-        #-and do convolution
-
-        # pc_xyz = gt_input_
-        # kd_tree = KDTree(pc_xyz, leaf_size=8)
-        # pc_KNN_idx = kd_tree.query(pc_xyz, k=self.KNN_num, return_distance=False)
-        # pc_KNN_idx = np.reshape(pc_KNN_idx,[-1])
-        # pc_KNN_xyz = pc_xyz[pc_KNN_idx]
-        # pc_KNN_xyz = np.reshape(pc_KNN_xyz,[len(pc_xyz),self.KNN_num,3]) - np.reshape(pc_xyz,[len(pc_xyz),1,3])
-        # pc_KNN_xyz = np.reshape(pc_KNN_xyz,[len(pc_xyz)*self.KNN_num,3])
-        # #this will be used to group point features
-
-        # #consider all grid cells within range to the point cloud
-        # pc_xyz_int = np.floor(pc_xyz).astype(np.int32)
-        # pc_xyz_int = np.clip(pc_xyz_int,0,grid_size)
-        # tmp_grid = np.zeros([grid_size+1,grid_size+1,grid_size+1], np.uint8)
-        # tmp_grid[pc_xyz_int[:,0],pc_xyz_int[:,1],pc_xyz_int[:,2]] = 1
-        # for ite in range(self.pooling_radius):
-        #     tmp_mask = np.copy(tmp_grid[1:-1,1:-1,1:-1])
-        #     for i in range(3):
-        #         for j in range(3):
-        #             for k in range(3):
-        #                 tmp_grid[i:grid_size-1+i,j:grid_size-1+j,k:grid_size-1+k] = tmp_mask | tmp_grid[i:grid_size-1+i,j:grid_size-1+j,k:grid_size-1+k]
-        # voxel_x,voxel_y,voxel_z = np.nonzero(tmp_grid)
-        # voxel_xyz = np.concatenate([np.reshape(voxel_x,[-1,1]),np.reshape(voxel_y,[-1,1]),np.reshape(voxel_z,[-1,1])],1)
-        # voxel_xyz = voxel_xyz.astype(np.float32)+0.5
-        # voxel_xyz_int = np.floor(voxel_xyz).astype(np.int64)
-
-        # voxel_KNN_idx = kd_tree.query(voxel_xyz, k=self.KNN_num, return_distance=False)
-        # voxel_KNN_idx = np.reshape(voxel_KNN_idx,[-1])
-        # voxel_KNN_xyz = pc_xyz[voxel_KNN_idx]
-        # voxel_KNN_xyz = np.reshape(voxel_KNN_xyz,[len(voxel_xyz),self.KNN_num,3]) - np.reshape(voxel_xyz,[len(voxel_xyz),1,3])
-        # voxel_KNN_xyz = np.reshape(voxel_KNN_xyz,[len(voxel_xyz)*self.KNN_num,3])
-
-
-        # if self.out_bool:
-        #     gt_output_bool = gt_output_bool_[voxel_xyz_int[:,0],voxel_xyz_int[:,1],voxel_xyz_int[:,2]] # 在这里相当于对空间中的 gt 以原始点及其附近点为索引，进行了采样
-        #     gt_output_bool = np.ascontiguousarray(gt_output_bool, np.float32)
-
-
-        # if self.out_float:
-        #     gt_output_float = gt_output_float_[voxel_xyz_int[:,0],voxel_xyz_int[:,1],voxel_xyz_int[:,2]]
-        #     gt_output_float = np.ascontiguousarray(gt_output_float, np.float32)
-        #     gt_output_float_mask = (gt_output_float>=0).astype(np.float32)
-
-
-        # if self.out_bool and self.out_float:
-        #     return pc_KNN_idx, pc_KNN_xyz, voxel_xyz_int, voxel_KNN_idx, voxel_KNN_xyz, gt_output_bool, gt_output_float, gt_output_float_mask
-        # elif self.out_bool:
-        #     return pc_KNN_idx, pc_KNN_xyz, voxel_xyz_int, voxel_KNN_idx, voxel_KNN_xyz, gt_output_bool
-        # elif self.out_float:
-        #     return pc_KNN_idx, pc_KNN_xyz, voxel_xyz_int, voxel_KNN_idx, voxel_KNN_xyz, gt_output_float, gt_output_float_mask
-
-        
-        
-        
-        # category = self.datasets[idx]['category'] # '02691156'
-        # category_idx = self.metadata[category]['idx'] # 类别索引
-        # single_object = self.datasets[idx]['model'] # '80da27a121142718e15a23e1c3d8f46d'
-
-
-        # single_sample_path = os.path.join(self.dataset_folder, category, single_object)
-        # pointcloud_data = {}
-
-        # info = category_idx
-        
-        # for field_name, field in self.fields.items(): # 这里面的item 有两个，一个是points ，好像是从3d shape 所占用的空间中采样得到的，另外一个是input，好像是从mesh上采样的                
-        #     if field_name == 'occ_points':
-        #         occ_points_fielder = field # 此时，这个field为PointField
-        #         occ_points_field = occ_points_fielder.load(single_sample_path, idx, info)
-                
-        #         if isinstance(occ_points_field, dict): # 判断是不是字典类型，正常情况下，里面应该是有一个 'points' 和一个'occ'
-        #             for k, v in occ_points_field.items():
-        #                 pointcloud_data['%s.%s' % (field_name, k)] = v
-                
-        #     if field_name == 'normal_points':
-        #         iou_occ_points_fielder = field # 此时，这个field为PointCloudField
-        #         iou_occ_points_field = iou_occ_points_fielder.load(single_sample_path, idx, info)
-                
-        #         if isinstance(iou_occ_points_field, dict): # 判断是不是字典类型，正常情况下，里面应该是有一个 'points' 和一个'normals'
-        #             for k, v in iou_occ_points_field.items():
-        #                 pointcloud_data['%s.%s' % (field_name, k)] = v
-                        
-        #     if field_name == 'iou_occ_points':
-        #         iou_occ_points_fielder = field # 此时，这个field为PointCloudField
-        #         iou_occ_points_field = iou_occ_points_fielder.load(single_sample_path, idx, info)
-                
-        #         if isinstance(iou_occ_points_field, dict): # 判断是不是字典类型，正常情况下，里面应该是有一个 'points' 和一个'normals'
-        #             for k, v in iou_occ_points_field.items():
-        #                 pointcloud_data['%s.%s' % (field_name, k)] = v
 
 
 

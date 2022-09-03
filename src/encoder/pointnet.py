@@ -28,11 +28,14 @@ class LocalPoolPointnet(nn.Module):
         n_blocks (int): number of blocks ResNetBlockFC layers
     '''
 
-    def __init__(self, c_dim=128, dim=3, hidden_dim=128, scatter_type='max', 
-                 unet=False, unet_kwargs=None, unet3d=False, unet3d_kwargs=None, 
-                 plane_resolution=None, grid_resolution=None, plane_type='xz', padding=0.1, n_blocks=5):
+    def __init__(self, out_bool, out_float,
+                 c_dim=128, dim=3, hidden_dim=128, scatter_type='max', 
+                 unet3d=False, unet3d_kwargs=None, 
+                 grid_resolution=None, plane_type='xz', padding=0.1, n_blocks=5):
         super().__init__()
         self.c_dim = c_dim
+        self.out_bool = out_bool
+        self.out_float = out_float
 
         self.fc_pos = nn.Linear(dim, 2*hidden_dim)
         self.blocks = nn.ModuleList([
@@ -43,17 +46,17 @@ class LocalPoolPointnet(nn.Module):
         self.actvn_relu = nn.ReLU()
         self.hidden_dim = hidden_dim
 
-        if unet:
-            self.unet = UNet(c_dim, in_channels=c_dim, **unet_kwargs)
-        else:
-            self.unet = None
+        # if unet:
+        #     self.unet = UNet(c_dim, in_channels=c_dim, **unet_kwargs)
+        # else:
+        #     self.unet = None
 
         if unet3d:
             self.unet3d = UNet3D(**unet3d_kwargs)
         else:
             self.unet3d = None
 
-        self.reso_plane = plane_resolution
+        # self.reso_plane = plane_resolution
         self.reso_grid = grid_resolution
         self.plane_type = plane_type
         self.padding = padding
@@ -64,6 +67,12 @@ class LocalPoolPointnet(nn.Module):
             self.scatter = scatter_mean
         else:
             raise ValueError('incorrect scatter type')
+        
+        
+        if self.out_bool:
+            self.pc_conv_out_bool = nn.Linear(32, 3)
+        if self.out_float:
+            self.pc_conv_out_float = nn.Linear(32, 3)        
 
     def generate_grid_features(self, points_raw, features):
         p_normalize = normalize_3d_coordinate(points_raw.clone(), padding=self.padding)
@@ -95,7 +104,10 @@ class LocalPoolPointnet(nn.Module):
             index_tmp = index[key].expand(-1, feature_dim, -1)
             features_scatter_gather = features_scatter.gather(dim=2, index=index_tmp) # 然后根据点原始的索引，得到原始点索引位置的features [1,32,10000]
             features_out += features_scatter_gather
-        return features_out.permute(0, 2, 1)
+            
+        features_out = features_out.permute(0, 2, 1)
+        
+        return features_out
 
 
     def forward(self, points_raw):
@@ -119,8 +131,29 @@ class LocalPoolPointnet(nn.Module):
 
         features = self.fc_c(net)
 
-        fea = {}
+        # fea = {}
         if 'grid' in self.plane_type:
-            fea['grid'] = self.generate_grid_features(points_raw, features)
+            scatter_feature = self.generate_grid_features(points_raw, features) # [bs, 32, 64, 64, 64]
+        
+        # out = self.fc_out(self.actvn(net)) # [1, 35937, 1]
+        if self.out_bool and self.out_float:
+            out_bool = self.pc_conv_out_bool(scatter_feature)
+            out_float = self.pc_conv_out_float(scatter_feature)
+            
+            out_bool = out_bool.squeeze(-1)  # [1, 35937]
+            out_float = out_float.squeeze(-1)  # [1, 35937]
+            
+            return torch.sigmoid(out_bool), out_float
+        elif self.out_bool:
+            scatter_feature = scatter_feature.permute(0, 2, 3, 4, 1)
+            out_bool = self.pc_conv_out_bool(scatter_feature)
 
-        return fea
+            # out_bool = out_bool.squeeze(-1)  # [1, 35937]
+            out_bool = torch.sigmoid(out_bool)
+            return out_bool
+        elif self.out_float:
+            scatter_feature = scatter_feature.permute(0, 2, 3, 4, 1)            
+            out_float = self.pc_conv_out_float(scatter_feature)            
+            # out_float = out_float.squeeze(-1)  # [1, 35937]
+            
+            return out_float

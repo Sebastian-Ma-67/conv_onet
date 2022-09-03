@@ -380,7 +380,7 @@ def dual_contouring_undc_test(int_grid, float_grid):
 
 
 def write_obj_triangle(name, vertices, triangles):
-    fout = open(name, 'w')
+    fout = open(name, 'w+')
     for ii in range(len(vertices)):
         fout.write("v "+str(vertices[ii,0])+" "+str(vertices[ii,1])+" "+str(vertices[ii,2])+"\n")
     for ii in range(len(triangles)):
@@ -405,7 +405,7 @@ def write_ply_triangle(name, vertices, triangles):
     fout.close()
 
 def write_ply_point(name, vertices):
-    fout = open(name, 'w')
+    fout = open(name, 'w+')
     fout.write("ply\n")
     fout.write("format ascii 1.0\n")
     fout.write("element vertex "+str(len(vertices))+"\n")

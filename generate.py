@@ -36,7 +36,7 @@ if vis_n_outputs is None:
     vis_n_outputs = -1
 
 # Dataset
-dataset = config.init_dataset('test', cfg, return_idx=True)
+dataset = config.init_dataset(cfg, return_idx=True)
 
 # Model
 network = config.get_network(cfg, device=device, dataset=dataset) # 这个model 就是个ConvolutionalOccupancyNetwork

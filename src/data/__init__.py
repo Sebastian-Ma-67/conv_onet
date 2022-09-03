@@ -24,6 +24,9 @@ from src.data.datasetpc import (
 from src.data.utils import (
     read_and_augment_data_undc,
     read_data,
+    dual_contouring_undc_test,
+    write_obj_triangle,
+    write_ply_point,
 )
 
 __all__ = [
@@ -46,4 +49,7 @@ __all__ = [
     ABC_pointcloud_hdf5,
     read_and_augment_data_undc,
     read_data,
+    dual_contouring_undc_test,
+    write_obj_triangle,
+    write_ply_point,
 ]

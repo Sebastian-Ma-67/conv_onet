@@ -7,15 +7,19 @@ class BaseTrainer(object):
     ''' Base trainer class.
     '''
 
-    def evaluate(self, val_loader):
+    def evaluate(self, val_loader, it):
         ''' Performs an evaluation.
         Args:
             val_loader (dataloader): pytorch dataloader
         '''
         eval_list = defaultdict(list)
+        i = it
 
         for data in tqdm(val_loader):
-            eval_step_dict = self.eval_step(data)
+            eval_step_dict = self.eval_step(data, i)
+            i += 1            
+            if i - it >= 10: 
+                break
 
             for k, v in eval_step_dict.items():
                 eval_list[k].append(v)

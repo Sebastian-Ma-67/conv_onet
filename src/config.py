@@ -105,7 +105,7 @@ def get_generator(model, cfg, device):
 
 
 # Datasets
-def init_dataset(mode, cfg, train=False, out_bool=False, out_float=False, return_idx=False):
+def init_dataset(cfg, train=False, out_bool=False, out_float=False, return_idx=False):
     ''' Returns the dataset.
 
     Args:
@@ -113,10 +113,7 @@ def init_dataset(mode, cfg, train=False, out_bool=False, out_float=False, return
         cfg (dict): config dictionary
         return_idx (bool): whether to include an ID field
     '''
-    method = cfg['method'] # convonet
-    dataset_type = cfg['data']['dataset'] # Shapes3D
-    dataset_folder = cfg['data']['path'] # data/demo/synthetic_room_dataset
-    categories = cfg['data']['classes'] # 
+    
     data_dir = cfg['data']['data_dir']
 
 
@@ -133,21 +130,21 @@ def init_dataset(mode, cfg, train=False, out_bool=False, out_float=False, return
         'test': cfg['data']['test_split'],
     }
 
-    split = splits[mode] # mdoe = 'test'
+    # split = splits[mode] # mdoe = 'test'
 
     # Create dataset 似乎现在只有一类dataset type: shapes3d
 
     # Dataset fields
     # Method specific fields (usually correspond to output)
-    points_fields = conv_onet.config.init_points_fields(mode, cfg) # points.npz
+    # points_fields = conv_onet.config.init_points_fields(mode, cfg) # points.npz
     
     # Input fields
-    point_cloud_field = init_point_cloud_field(mode, cfg) # pointcloud.npz
-    if point_cloud_field is not None:
-        points_fields['normal_points'] = point_cloud_field             
+    # point_cloud_field = init_point_cloud_field(mode, cfg) # pointcloud.npz
+    # if point_cloud_field is not None:
+        # points_fields['normal_points'] = point_cloud_field             
 
-    if return_idx:
-        points_fields['idx'] = data.IndexField() # 这个类似乎还没有开发完
+    # if return_idx:
+        # points_fields['idx'] = data.IndexField() # 这个类似乎还没有开发完
 
     # shapes_3d_dataset = data.Shapes3dDataset(
     #     dataset_folder,

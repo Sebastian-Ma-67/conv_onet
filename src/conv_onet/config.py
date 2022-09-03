@@ -52,28 +52,28 @@ def get_network(cfg, device=None, dataset=None, **kwargs):
     
 
     # decoder = models.decoder_dict[decoder](
-    decoder = models.decoder.LocalDecoder(    
+    # decoder = models.decoder.LocalDecoder(    
+    #     out_bool=out_bool,
+    #     out_float=out_float,
+    #     dim=dim,
+    #     c_dim=c_dim,
+    #     padding=padding,
+    #     **decoder_kwargs
+    # )
+
+
+    # encoder = encoder_dict[encoder](
+    encoder = pointnet.LocalPoolPointnet(
         out_bool=out_bool,
         out_float=out_float,
         dim=dim,
         c_dim=c_dim,
         padding=padding,
-        **decoder_kwargs
+        **encoder_kwargs
     )
-
-    if encoder is not None:
-        # encoder = encoder_dict[encoder](
-        encoder = pointnet.LocalPoolPointnet(
-            dim=dim,
-            c_dim=c_dim,
-            padding=padding,
-            **encoder_kwargs
-        )
-    else:
-        encoder = None
-
+        
     model = models.ConvolutionalOccupancyNetwork(
-        decoder, 
+        # decoder, 
         encoder, 
         device=device
     )

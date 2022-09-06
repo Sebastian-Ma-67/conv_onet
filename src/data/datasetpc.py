@@ -12,7 +12,7 @@ from src.data.utils import read_data,read_and_augment_data_undc,read_data_input_
 
 
 class ABC_pointcloud_hdf5(torch.utils.data.Dataset):
-    def __init__(self, data_dir, input_point_num, output_grid_size, pooling_radius, input_type, train, out_bool, out_float, input_only=False):
+    def __init__(self, data_dir, input_point_num, output_grid_size, pooling_radius, input_type, train, out_bool, out_float, input_points_only=False):
         self.data_dir = data_dir
         self.input_point_num = input_point_num
         self.output_grid_size = output_grid_size
@@ -23,7 +23,7 @@ class ABC_pointcloud_hdf5(torch.utils.data.Dataset):
         self.input_type = input_type
         self.out_bool = out_bool
         self.out_float = out_float
-        self.input_only = input_only
+        self.input_only = input_points_only
 
         if self.out_bool and self.out_float and self.train:
             print("ERROR: out_bool and out_float cannot both be activated in training")
@@ -47,7 +47,7 @@ class ABC_pointcloud_hdf5(torch.utils.data.Dataset):
                 temp_hdf5_gridsizes = []
                 for name in self.hdf5_names:
                     # for grid_size in [32,64]: # 这里为什么要有32 和 64 种分辨率呢？
-                    for grid_size in [32]: # 这里为什么要有32 和 64 种分辨率呢？                    
+                    for grid_size in [32]: # 这里为什么要有32 和 64 种分辨率呢？ 为了实验，我们先把他改成32                   
                         temp_hdf5_names.append(name)
                         temp_hdf5_gridsizes.append(grid_size)
                 self.hdf5_names = temp_hdf5_names
@@ -64,6 +64,8 @@ class ABC_pointcloud_hdf5(torch.utils.data.Dataset):
         return len(self.hdf5_names)
 
     def __getitem__(self, index):
+        pointcloud_data = {}
+    
         hdf5_dir = self.data_dir + "/" + self.hdf5_names[index] + ".hdf5"
         if self.input_type=="pointcloud": 
             grid_size = self.hdf5_gridsizes[index]
@@ -73,12 +75,17 @@ class ABC_pointcloud_hdf5(torch.utils.data.Dataset):
 
 
         if self.train:
-            gt_output_bool_, gt_output_float_, gt_input_ = read_and_augment_data_undc(hdf5_dir,grid_size,self.input_type,self.out_bool,self.out_float,aug_permutation=True,aug_reversal=True,aug_inversion=False)
+            gt_output_bool_, gt_output_float_, gt_input_ = read_and_augment_data_undc(hdf5_dir,
+                grid_size, self.input_type, 
+                self.out_bool, self.out_float,
+                # True, True, 
+                aug_permutation=True, aug_reversal=True, aug_inversion=False)
         else:
-            if self.input_only:
-                gt_output_bool_,gt_output_float_,gt_input_ = read_data_input_only(hdf5_dir,grid_size,self.input_type,self.out_bool,self.out_float,is_undc=True)
+            if self.input_only: # gt_output_bool_ = np.zeros, gt_output_float_ = np.zeros 
+                gt_output_bool_, gt_output_float_, gt_input_ = read_data_input_only(hdf5_dir,grid_size,self.input_type,self.out_bool,self.out_float,is_undc=True)
             else:
-                gt_output_bool_,gt_output_float_,gt_input_ = read_data(hdf5_dir,grid_size,self.input_type,self.out_bool,self.out_float,is_undc=True)
+                gt_output_bool_, gt_output_float_, gt_input_ = read_data(hdf5_dir,grid_size,self.input_type,self.out_bool,self.out_float,is_undc=True)
+                pointcloud_data['input_name'] = self.hdf5_names[index]
 
 
         if self.train:
@@ -93,7 +100,8 @@ class ABC_pointcloud_hdf5(torch.utils.data.Dataset):
                     count = self.input_point_num
                     
                 elif grid_size==64:
-                    count = np.random.randint(2048,8192)
+                    # count = np.random.randint(2048,8192)
+                    count = self.input_point_num
                 gt_input_ = gt_input_[:count]
             elif self.input_type=="noisypc": #augmented data
                 #augment input point number depending on the shape scale
@@ -117,16 +125,22 @@ class ABC_pointcloud_hdf5(torch.utils.data.Dataset):
 
         # 接下来这部分，我着重说一下啊，我们不需要kdtree，也不需要KNN，我们只需要input points [Np, 3], 一个 gt_output_bool 的值，这个值应该是 [32, 32, 32], 有可能是33 
         # 然后，我们拿着这部分数据，把他交给convonet，让他训练，然后用 ndc 的方法计算 loss
-        pointcloud_data = {}
-        if self.out_bool:
-            pointcloud_data['gt_output_bool'] = gt_output_bool_[:-1, :-1, :-1, :] # 强行舍弃掉边缘的值，使得其变成32x32x32x3
-        if self.out_float:
-            pointcloud_data['gt_output_float'] = gt_output_float_[:-1, :-1, :-1, :] # 强行舍弃掉边缘的值，使得其变成32x32x32x3
+
         pointcloud_data['input_points'] = gt_input_
         
+        if self.out_bool:
+        # if 1:
+            pointcloud_data['gt_output_bool'] = gt_output_bool_[:-1, :-1, :-1, :] # 强行舍弃掉边缘的值，使得其变成32x32x32x3
+            # pointcloud_data['gt_output_float'] = np.zeros([grid_size, grid_size, grid_size, 3], np.float32)
+
+        if self.out_float:
+        # if 1:
+            pointcloud_data['gt_output_float'] = gt_output_float_[:-1, :-1, :-1, :] # 强行舍弃掉边缘的值，使得其变成32x32x32x3
+            pointcloud_data['gt_output_float_mask'] = (pointcloud_data['gt_output_float']>=0).astype(np.float32)
+            # pointcloud_data['gt_output_bool'] =  np.zeros([grid_size, grid_size, grid_size, 3], np.int32)        
+        
+        
         return pointcloud_data
-
-
 
 
 

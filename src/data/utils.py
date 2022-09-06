@@ -96,6 +96,7 @@ def read_data(hdf5_dir,
         LOD_input = hdf5_file["pointcloud"][:].astype(np.float32)
         LOD_input = (LOD_input+0.5)*grid_size #denormalize
     hdf5_file.close()
+    
     return LOD_gt_int, LOD_gt_float, LOD_input
 
 

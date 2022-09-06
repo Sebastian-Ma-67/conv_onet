@@ -69,10 +69,10 @@ class LocalPoolPointnet(nn.Module):
             raise ValueError('incorrect scatter type')
         
         
-        if self.out_bool:
-            self.pc_conv_out_bool = nn.Linear(32, 3)
-        if self.out_float:
-            self.pc_conv_out_float = nn.Linear(32, 3)        
+        # if self.out_bool:
+        #     self.pc_conv_out_bool = nn.Linear(32, 3)
+        # if self.out_float:
+        #     self.pc_conv_out_float = nn.Linear(32, 3)        
 
     def generate_grid_features(self, points_raw, features):
         p_normalize = normalize_3d_coordinate(points_raw.clone(), padding=self.padding)
@@ -135,6 +135,8 @@ class LocalPoolPointnet(nn.Module):
         if 'grid' in self.plane_type:
             scatter_feature = self.generate_grid_features(points_raw, features) # [bs, 32, 64, 64, 64]
         
+        return scatter_feature
+    
         # out = self.fc_out(self.actvn(net)) # [1, 35937, 1]
         if self.out_bool and self.out_float:
             out_bool = self.pc_conv_out_bool(scatter_feature)

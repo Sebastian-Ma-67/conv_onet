@@ -60,7 +60,7 @@ def update_recursive(dict1, dict2):
 
 
 # Models
-def get_network(cfg, device=None, dataset=None):
+def init_network(cfg, device=None):
     ''' Returns the model instance.
 
     Args:
@@ -68,9 +68,9 @@ def get_network(cfg, device=None, dataset=None):
         device (device): pytorch device
         dataset (dataset): dataset
     '''
-    method = cfg['method']
-    model = conv_onet.config.get_network(
-        cfg, device=device, dataset=dataset)
+    # method = cfg['method']
+    model = conv_onet.config.get_init_network(
+        cfg, device=device)
     return model
 
 
@@ -91,7 +91,7 @@ def get_trainer(model, optimizer, cfg, device):
 
 
 # Generator for final mesh extraction
-def get_generator(model, cfg, device):
+def init_generator(model, cfg, device):
     ''' Returns a generator instance.
 
     Args:
@@ -99,7 +99,7 @@ def get_generator(model, cfg, device):
         cfg (dict): config dictionary
         device (device): pytorch device
     '''
-    method = cfg['method']
+    # method = cfg['method']
     generator = conv_onet.config.get_init_generator(model, cfg, device)
     return generator
 
@@ -121,38 +121,8 @@ def init_dataset(cfg, train=False, out_bool=False, out_float=False, return_idx=F
     grid_size = cfg['data']['grid_size']
     pooling_radius = 2 #for pointcloud input
     input_type = cfg['data']['input_type']
-
-
-    # Get split
-    splits = {
-        'train': cfg['data']['train_split'],
-        'val': cfg['data']['val_split'],
-        'test': cfg['data']['test_split'],
-    }
-
-    # split = splits[mode] # mdoe = 'test'
-
-    # Create dataset 似乎现在只有一类dataset type: shapes3d
-
-    # Dataset fields
-    # Method specific fields (usually correspond to output)
-    # points_fields = conv_onet.config.init_points_fields(mode, cfg) # points.npz
+    input_points_only = cfg['data']['input_points_only']
     
-    # Input fields
-    # point_cloud_field = init_point_cloud_field(mode, cfg) # pointcloud.npz
-    # if point_cloud_field is not None:
-        # points_fields['normal_points'] = point_cloud_field             
-
-    # if return_idx:
-        # points_fields['idx'] = data.IndexField() # 这个类似乎还没有开发完
-
-    # shapes_3d_dataset = data.Shapes3dDataset(
-    #     dataset_folder,
-    #     points_fields,
-    #     split=split,
-    #     categories=categories,
-    #     cfg = cfg
-    # )
     
     shapes_3d_dataset = data.ABC_pointcloud_hdf5(
         data_dir,
@@ -162,28 +132,8 @@ def init_dataset(cfg, train=False, out_bool=False, out_float=False, return_idx=F
         input_type,
         train,
         out_bool=out_bool,
-        out_float=out_float        
+        out_float=out_float,       
+        input_points_only=input_points_only 
     )
  
     return shapes_3d_dataset
-
-
-def init_point_cloud_field(mode, cfg):
-    ''' Returns the inputs fields.
-
-    Args:
-        mode (str): the mode which is used
-        cfg (dict): config dictionary
-    '''
-
-    pointcloud_subsample = data.PointcloudSubsample(cfg['data']['pointcloud_n'])
-    pointcloud_noise_transform = data.PointcloudNoiseTransform(cfg['data']['pointcloud_noise'])
-    total_transforms = transforms.Compose([pointcloud_subsample, pointcloud_noise_transform]) # 这里只是初始化
-    
-    point_cloud_field = data.PointCloudField(
-        cfg['data']['pointcloud_file'], 
-        total_transforms,
-        multi_files= cfg['data']['multi_files']
-    ) # 这里只是初始化
-
-    return point_cloud_field

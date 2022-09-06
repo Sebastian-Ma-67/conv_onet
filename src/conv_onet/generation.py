@@ -63,7 +63,7 @@ class Generator3D(object):
         if vol_info is not None:
             self.input_vol, _, _ = vol_info
         
-    def generate_mesh(self, points_with_normals, return_stats=True):
+    def generate_mesh(self, pointcloud_data, return_stats=True):
         ''' Generates the output mesh.
 
         Args:
@@ -74,25 +74,25 @@ class Generator3D(object):
         device = self.device
         stats_dict = {}
 
-        points = points_with_normals.get('normal_points', torch.empty(1, 0)).to(device)
+        points = pointcloud_data.get('input_points', torch.empty(1, 0)).to(device)
         kwargs = {}
 
         t0 = time.time()
 
-        points = add_key(points, points_with_normals.get('input_points.ind'), 'points', 'index', device=device) # 当前的代码好像直接返回points了，不知道原始代码是什么情况
+        # points = add_key(points, pointcloud_data.get('input_points.ind'), 'points', 'index', device=device) # 当前的代码好像直接返回points了，不知道原始代码是什么情况
         t0 = time.time()
         with torch.no_grad():
             encoded_features = self.model.encode_inputs(points) # （1）先进行encode
         stats_dict['time (encode inputs)'] = time.time() - t0
         
-        mesh = self.generate_from_latent(encoded_features, stats_dict=stats_dict, **kwargs) # （2）然后从encoded之后的latent中decode出occupancy
+        mesh = self.generate_from_decoder(encoded_features, stats_dict=stats_dict, **kwargs) # （2）然后从encoded之后的latent中decode出occupancy
 
         if return_stats:
             return mesh, stats_dict
         else:
             return mesh
     
-    def generate_from_latent(self, encoded_features=None, stats_dict={}, **kwargs):
+    def generate_from_decoder(self, encoded_features=None, stats_dict={}, **kwargs):
         ''' Generates mesh from latent.
             Works for shapes normalized to a unit cube
 

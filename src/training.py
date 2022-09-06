@@ -13,12 +13,12 @@ class BaseTrainer(object):
             val_loader (dataloader): pytorch dataloader
         '''
         eval_list = defaultdict(list)
-        i = it
-
+        # i = it
+        i = 0
         for data in tqdm(val_loader):
-            eval_step_dict = self.eval_step(data, i)
+            eval_step_dict = self.eval_step(data, it)
             i += 1            
-            if i - it >= 10: 
+            if i >= 11: # 这里面我们值与测试前十个val数据
                 break
 
             for k, v in eval_step_dict.items():

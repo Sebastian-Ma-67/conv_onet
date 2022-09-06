@@ -28,12 +28,12 @@ class LocalDecoder(nn.Module):
         self.out_float = out_float
 
         if c_dim != 0:
-            self.fc_c = nn.ModuleList([
+            self.fc = nn.ModuleList([
                 nn.Linear(c_dim, hidden_size) for i in range(n_blocks)
             ])
 
 
-        self.fc_p = nn.Linear(dim, hidden_size)
+        # self.fc_p = nn.Linear(dim, hidden_size)
 
         self.blocks = nn.ModuleList([
             ResnetBlockFC(hidden_size) for i in range(n_blocks)
@@ -50,9 +50,9 @@ class LocalDecoder(nn.Module):
 
         # self.fc_out = nn.Linear(hidden_size, 1)
         if self.out_bool:
-            self.pc_conv_out_bool = nn.Linear(hidden_size, 3)
+            self.pc_conv_out_bool = nn.Linear(32, 3)
         if self.out_float:
-            self.pc_conv_out_float = nn.Linear(hidden_size, 3)        
+            self.pc_conv_out_float = nn.Linear(32, 3)        
 
 
         
@@ -65,22 +65,18 @@ class LocalDecoder(nn.Module):
         return c
 
 
-    def forward(self, probe_points, encoded_features, **kwargs):
-        if self.c_dim != 0:
-            grid_sampled_features = self.sample_grid_feature(probe_points, encoded_features['grid'])
-
-            grid_sampled_features = grid_sampled_features.transpose(1, 2) # [1, 35937, 3]
-
-        probe_points = probe_points.float() # [1, 35937, 3]
-        net = self.fc_p(probe_points) # [1, 35937, 32] / 3->32
-
+    def forward(self, encoded_features, **kwargs):
+        encoded_features = encoded_features.permute(0, 2, 3, 4, 1)
         for i in range(self.n_blocks):
             if self.c_dim != 0:
-                net = net + self.fc_c[i](grid_sampled_features) # [1, 35937, 32]
+                if  i == 0:
+                    net = self.fc[0](encoded_features)
+                else:
+                    net = net + self.fc[i](encoded_features) # [1, 35937, 32]
 
             net = self.blocks[i](net)
+        
 
-        # out = self.fc_out(self.actvn(net)) # [1, 35937, 1]
         if self.out_bool and self.out_float:
             out_bool = self.pc_conv_out_bool(net)
             out_float = self.pc_conv_out_float(net)
@@ -91,16 +87,13 @@ class LocalDecoder(nn.Module):
             return torch.sigmoid(out_bool), out_float
         elif self.out_bool:
             out_bool = self.pc_conv_out_bool(net)
-            out_bool = out_bool.squeeze(-1)  # [1, 35937]
-            
-            return torch.sigmoid(out_bool)
-        elif self.out_float:
-            out_float = self.pc_conv_out_float(net)
-            out_float = out_float.squeeze(-1)  # [1, 35937]
-            
-            return out_float
-        
+            out_bool = torch.sigmoid(out_bool)
+ 
+            return out_bool
+        elif self.out_float:        
+            out_float = self.pc_conv_out_float(net)            
 
+            return out_float
 
         # return out
 

@@ -17,7 +17,7 @@ get model, trainer, generator, data_fields
 
 
 '''
-def get_network(cfg, device=None, dataset=None, **kwargs):
+def get_init_network(cfg, device=None, **kwargs):
     ''' Return the Occupancy Network model.
 
     Args:
@@ -25,7 +25,7 @@ def get_network(cfg, device=None, dataset=None, **kwargs):
         device (device): pytorch device
         dataset (dataset): dataset
     '''
-    decoder = cfg['model']['decoder']
+    # decoder = cfg['model']['decoder']
     encoder = cfg['model']['encoder']
     dim = cfg['data']['dim']
     c_dim = cfg['model']['c_dim']
@@ -52,14 +52,14 @@ def get_network(cfg, device=None, dataset=None, **kwargs):
     
 
     # decoder = models.decoder_dict[decoder](
-    # decoder = models.decoder.LocalDecoder(    
-    #     out_bool=out_bool,
-    #     out_float=out_float,
-    #     dim=dim,
-    #     c_dim=c_dim,
-    #     padding=padding,
-    #     **decoder_kwargs
-    # )
+    decoder = models.decoder.LocalDecoder(    
+        out_bool=out_bool,
+        out_float=out_float,
+        dim=dim,
+        c_dim=c_dim,
+        padding=padding,
+        **decoder_kwargs
+    )
 
 
     # encoder = encoder_dict[encoder](
@@ -73,7 +73,7 @@ def get_network(cfg, device=None, dataset=None, **kwargs):
     )
         
     model = models.ConvolutionalOccupancyNetwork(
-        # decoder, 
+        decoder, 
         encoder, 
         device=device
     )

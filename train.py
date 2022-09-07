@@ -178,6 +178,13 @@ while True:
     avg_acc_bool_count = 0
     avg_acc_float_count = 0
     
+    
+    if epoch_it % cfg['training']['lr_half_life'] == 0: # 调整学习率，注意，这里在一开始的时候，也就是epoch==0的时候，就对lr进行了调整
+        for g in optimizer.param_groups:
+            lr = cfg['training']['lr']/(2**(epoch_it//cfg['training']['lr_half_life']))
+            print("Setting learning rate to", lr)
+            g['lr'] = lr
+    
     for batch in train_loader:
         it += 1
         loss, avg_acc_bool, avg_acc_float = trainer.train_step(batch) # 开始训练

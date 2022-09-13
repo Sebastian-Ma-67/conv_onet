@@ -3,8 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from src.layers import ResnetBlockFC
 from torch_scatter import scatter_mean, scatter_max
-from src.common import coordinate2index, normalize_coordinate, normalize_3d_coordinate, map2local
-from src.encoder.unet import UNet
+from src.common import coordinate2index, normalize_3d_coordinate
 from src.encoder.unet3d import UNet3D
 
 
@@ -28,28 +27,23 @@ class LocalPoolPointnet(nn.Module):
         n_blocks (int): number of blocks ResNetBlockFC layers
     '''
 
-    def __init__(self, out_bool, out_float,
+    def __init__(self,
                  c_dim=128, dim=3, hidden_dim=128, scatter_type='max', 
                  unet3d=False, unet3d_kwargs=None, 
                  grid_resolution=None, plane_type='xz', padding=0.1, n_blocks=5):
         super().__init__()
         self.c_dim = c_dim
-        self.out_bool = out_bool
-        self.out_float = out_float
 
         self.fc_pos = nn.Linear(dim, 2*hidden_dim)
+        
         self.blocks = nn.ModuleList([
             ResnetBlockFC(2*hidden_dim, hidden_dim) for i in range(n_blocks)
         ])
+        
         self.fc_c = nn.Linear(hidden_dim, c_dim)
 
         self.actvn_relu = nn.ReLU()
         self.hidden_dim = hidden_dim
-
-        # if unet:
-        #     self.unet = UNet(c_dim, in_channels=c_dim, **unet_kwargs)
-        # else:
-        #     self.unet = None
 
         if unet3d:
             self.unet3d = UNet3D(**unet3d_kwargs)
@@ -67,24 +61,18 @@ class LocalPoolPointnet(nn.Module):
             self.scatter = scatter_mean
         else:
             raise ValueError('incorrect scatter type')
-        
-        
-        # if self.out_bool:
-        #     self.pc_conv_out_bool = nn.Linear(32, 3)
-        # if self.out_float:
-        #     self.pc_conv_out_float = nn.Linear(32, 3)        
 
     def generate_grid_features(self, points_raw, features):
         p_normalize = normalize_3d_coordinate(points_raw.clone(), padding=self.padding)
         index = coordinate2index(p_normalize, self.reso_grid, coord_type='3d')
+        
         # scatter grid features from points
         fea_grid = features.new_zeros(points_raw.size(0), self.c_dim, self.reso_grid**3)
         features = features.permute(0, 2, 1)
         fea_grid = scatter_mean(features, index, out=fea_grid) # B x C x reso^3
         fea_grid = fea_grid.reshape(points_raw.size(0), self.c_dim, self.reso_grid, self.reso_grid, self.reso_grid) # sparce matrix (B x 32 x reso x reso x reso)
 
-        if self.unet3d is not None:
-            fea_grid = self.unet3d(fea_grid)
+        fea_grid = self.unet3d(fea_grid)
 
         return fea_grid
 
@@ -95,8 +83,7 @@ class LocalPoolPointnet(nn.Module):
         features_out = 0
         for key in keys:
             # scatter plane features from points???
-            if key == 'grid':
-                features_scatter_out, features_scatter_index = self.scatter(features.permute(0, 2, 1), index[key], dim_size=self.reso_grid**3) # 根据点集的features，得到64*64*64个网格的features； [1,32,64^3]
+            features_scatter_out, features_scatter_index = self.scatter(features.permute(0, 2, 1), index[key], dim_size=self.reso_grid**3) # 根据点集的features，得到64*64*64个网格的features； [1,32,64^3]
                 
             if self.scatter == scatter_max:
                 features_scatter = features_scatter_out
@@ -131,31 +118,7 @@ class LocalPoolPointnet(nn.Module):
 
         features = self.fc_c(net)
 
-        # fea = {}
         if 'grid' in self.plane_type:
             scatter_feature = self.generate_grid_features(points_raw, features) # [bs, 32, 64, 64, 64]
         
         return scatter_feature
-    
-        # out = self.fc_out(self.actvn(net)) # [1, 35937, 1]
-        if self.out_bool and self.out_float:
-            out_bool = self.pc_conv_out_bool(scatter_feature)
-            out_float = self.pc_conv_out_float(scatter_feature)
-            
-            out_bool = out_bool.squeeze(-1)  # [1, 35937]
-            out_float = out_float.squeeze(-1)  # [1, 35937]
-            
-            return torch.sigmoid(out_bool), out_float
-        elif self.out_bool:
-            scatter_feature = scatter_feature.permute(0, 2, 3, 4, 1)
-            out_bool = self.pc_conv_out_bool(scatter_feature)
-
-            # out_bool = out_bool.squeeze(-1)  # [1, 35937]
-            out_bool = torch.sigmoid(out_bool)
-            return out_bool
-        elif self.out_float:
-            scatter_feature = scatter_feature.permute(0, 2, 3, 4, 1)            
-            out_float = self.pc_conv_out_float(scatter_feature)            
-            # out_float = out_float.squeeze(-1)  # [1, 35937]
-            
-            return out_float

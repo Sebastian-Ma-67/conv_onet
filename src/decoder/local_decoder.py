@@ -105,6 +105,7 @@ class WithProbeDecoder(nn.Module):
 
 
     def forward(self, encoded_features, **kwargs):
+        
         encoded_features = encoded_features.permute(0, 2, 3, 4, 1)
         
         net = self.fc[0](encoded_features)

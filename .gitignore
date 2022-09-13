@@ -2,6 +2,7 @@
 /data
 /groundtruth
 /weights
+/wandb
 build
 .vscode
 .pytest_cache
@@ -11,6 +12,8 @@ build
 *.pt
 *.so
 *.o
+*.c
+*.pyx
 *.prof
 *.swp
 *.lib

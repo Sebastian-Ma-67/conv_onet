@@ -96,7 +96,6 @@ def read_data(hdf5_dir,
         LOD_input = hdf5_file["pointcloud"][:].astype(np.float32)
         LOD_input = (LOD_input+0.5)*grid_size #denormalize
     hdf5_file.close()
-    
     return LOD_gt_int, LOD_gt_float, LOD_input
 
 
@@ -281,8 +280,8 @@ def read_and_augment_data_undc(hdf5_dir,
 
     #store outputs 然后将增强后的数据再次保存起来
     if out_bool:
-        LOD_gt_int = np.zeros([grid_size_1, grid_size_1, grid_size_1, 3], np.int32)
-        LOD_gt_int[:-1,:,:,0] = new_grid_dict['int_edge_x_']
+        LOD_gt_int = np.zeros([grid_size_1, grid_size_1, grid_size_1, 3], np.int32) # 先初始化为0
+        LOD_gt_int[:-1,:,:,0] = new_grid_dict['int_edge_x_'] # 除去x方向的最后一个
         LOD_gt_int[:,:-1,:,1] = new_grid_dict['int_edge_y_']
         LOD_gt_int[:,:,:-1,2] = new_grid_dict['int_edge_z_']
     else:
@@ -381,7 +380,7 @@ def dual_contouring_undc_test(int_grid, float_grid):
 
 
 def write_obj_triangle(name, vertices, triangles):
-    fout = open(name, 'w+')
+    fout = open(name, 'w')
     for ii in range(len(vertices)):
         fout.write("v "+str(vertices[ii,0])+" "+str(vertices[ii,1])+" "+str(vertices[ii,2])+"\n")
     for ii in range(len(triangles)):
@@ -406,7 +405,7 @@ def write_ply_triangle(name, vertices, triangles):
     fout.close()
 
 def write_ply_point(name, vertices):
-    fout = open(name, 'w+')
+    fout = open(name, 'w')
     fout.write("ply\n")
     fout.write("format ascii 1.0\n")
     fout.write("element vertex "+str(len(vertices))+"\n")
@@ -437,7 +436,7 @@ def write_ply_point_normal(name, vertices, normals=None):
         for ii in range(len(vertices)):
             fout.write(str(vertices[ii,0])+" "+str(vertices[ii,1])+" "+str(vertices[ii,2])+" "+str(normals[ii,0])+" "+str(normals[ii,1])+" "+str(normals[ii,2])+"\n")
     fout.close()
-    
+
 def makeGrid(bb_min=[0,0,0], bb_max=[1,1,1], shape=[10,10,10], 
     mode='on', flatten=True, indexing="ij"):
     """ Make a grid of coordinates

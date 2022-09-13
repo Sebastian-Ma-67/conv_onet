@@ -1,15 +1,7 @@
 import yaml
-from torchvision import transforms
-from src import data
+# from src import data
+from src.data.datasetpc import ABC_pointcloud_hdf5
 from src import conv_onet
-# import sys
-# sys.path.append('.')
-# from data import datasetpc #可以考虑把datasetpc 放在某个包下面，比如和core放在一起
-
-method_dict = {
-    'conv_onet': conv_onet
-} # 目前好像就这一个方法
-
 
 # General config
 def load_config(path, default_path=None):
@@ -60,7 +52,7 @@ def update_recursive(dict1, dict2):
 
 
 # Models
-def init_network(cfg, device=None):
+def get_init_network(cfg, device=None):
     ''' Returns the model instance.
 
     Args:
@@ -75,7 +67,7 @@ def init_network(cfg, device=None):
 
 
 # Trainer
-def get_trainer(model, optimizer, cfg, device):
+def get_init_trainer(model, optimizer, cfg, device):
     ''' Returns a trainer instance.
 
     Args:
@@ -84,7 +76,6 @@ def get_trainer(model, optimizer, cfg, device):
         cfg (dict): config dictionary
         device (device): pytorch device
     '''
-    method = cfg['method']
     trainer = conv_onet.config.get_trainer(
         model, optimizer, cfg, device)
     return trainer
@@ -99,13 +90,13 @@ def init_generator(model, cfg, device):
         cfg (dict): config dictionary
         device (device): pytorch device
     '''
-    # method = cfg['method']
+
     generator = conv_onet.config.get_init_generator(model, cfg, device)
     return generator
 
 
 # Datasets
-def init_dataset(cfg, train=False, out_bool=False, out_float=False, return_idx=False):
+def get_init_dataset(cfg, train=False, out_bool=False, out_float=False, return_idx=False):
     ''' Returns the dataset.
 
     Args:
@@ -115,8 +106,6 @@ def init_dataset(cfg, train=False, out_bool=False, out_float=False, return_idx=F
     '''
     
     data_dir = cfg['data']['data_dir']
-
-
     point_num = cfg['data']['point_num']
     grid_size = cfg['data']['grid_size']
     pooling_radius = 2 #for pointcloud input
@@ -124,7 +113,7 @@ def init_dataset(cfg, train=False, out_bool=False, out_float=False, return_idx=F
     input_points_only = cfg['data']['input_points_only']
     
     
-    shapes_3d_dataset = data.ABC_pointcloud_hdf5(
+    shapes_3d_dataset = ABC_pointcloud_hdf5(
         data_dir,
         point_num,
         grid_size,

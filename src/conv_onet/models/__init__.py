@@ -2,14 +2,12 @@ import torch
 import torch.nn as nn
 from torch import distributions as dist
 from src.conv_onet.models import decoder
-
 # Decoder dictionary
 decoder_dict = {
-    'simple_local': decoder.LocalDecoder # 是用的这个吗？
+    'simple_local': decoder.LocalDecoder,
     # 'simple_local_crop': decoder.PatchLocalDecoder,
-    # 'simple_local_point': decoder.LocalPointDecoder
+    'with_probe_decoder': decoder.WithProbeDecoder
 }
-
 
 class ConvolutionalOccupancyNetwork(nn.Module):
     ''' Occupancy Network class.
@@ -40,15 +38,10 @@ class ConvolutionalOccupancyNetwork(nn.Module):
             inputs (tensor): conditioning input
             sample (bool): whether to sample for z
         '''
-        #############
-        # if isinstance(p, dict):
-        #     batch_size = p['p'].size(0)
-        # else:
-        #     batch_size = p.size(0)
+
         encoded_features = self.encode_inputs(inputs)
-        p_r = self.decode(encoded_features, **kwargs)
-        return p_r
-        return encoded_features
+        pred_logits = self.decode(encoded_features, **kwargs)
+        return pred_logits
 
     def encode_inputs(self, inputs):
         ''' Encodes the input.
@@ -56,12 +49,7 @@ class ConvolutionalOccupancyNetwork(nn.Module):
         Args:
             input (tensor): the input
         '''
-
-        if self.encoder is not None:
-            features = self.encoder(inputs)
-        else:
-            # Return inputs? 忽略好吧
-            features = torch.empty(inputs.size(0), 0)
+        features = self.encoder(inputs)
 
         return features
 
@@ -73,10 +61,9 @@ class ConvolutionalOccupancyNetwork(nn.Module):
             c (tensor): latent conditioned code c
         '''
 
-        logits = self.decoder(encoded_features, **kwargs)
-        return logits
-        p_r = dist.Bernoulli(logits=logits)
-        return p_r
+        pred_logits = self.decoder(encoded_features, **kwargs)
+        pred_Bernoulli = dist.Bernoulli(logits=pred_logits)
+        return pred_Bernoulli
 
     def to(self, device):
         ''' Puts the model to the device.

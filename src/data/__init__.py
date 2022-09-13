@@ -18,9 +18,9 @@ from src.data.transforms import (
     PointcloudSubsample, # 从mesh 得到的点云降采样
     PointsSubsample, # 从 
 )
-from src.data.datasetpc import (
-    ABC_pointcloud_hdf5,
-)
+# from src.data.datasetpc import (
+#     ABC_pointcloud_hdf5,
+# )
 from src.data.utils import (
     read_and_augment_data_undc,
     read_data,
@@ -46,7 +46,7 @@ __all__ = [
     PointcloudNoiseTransform,
     PointcloudSubsample,
     PointsSubsample,
-    ABC_pointcloud_hdf5,
+    # ABC_pointcloud_hdf5,
     read_and_augment_data_undc,
     read_data,
     dual_contouring_undc_test,

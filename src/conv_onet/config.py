@@ -1,15 +1,10 @@
-import torch
-import torch.distributions as dist
-from torch import nn
 import os
 from src.encoder import pointnet
+from src.encoder import encoder_dict
+from src.decoder import decoder_dict
+from src.conv_onet.models import decoder
 from src.conv_onet import models, training
 from src.conv_onet import generation
-from src import data
-from src import config
-from src.common import decide_total_volume_range, update_reso
-from torchvision import transforms
-import numpy as np
 
 '''
 get something:
@@ -25,14 +20,14 @@ def get_init_network(cfg, device=None, **kwargs):
         device (device): pytorch device
         dataset (dataset): dataset
     '''
-    # decoder = cfg['model']['decoder']
-    encoder = cfg['model']['encoder']
+    inside_decoder = cfg['model']['decoder']
+    inside_encoder = cfg['model']['encoder']
     dim = cfg['data']['dim']
     c_dim = cfg['model']['c_dim']
     decoder_kwargs = cfg['model']['decoder_kwargs']
     encoder_kwargs = cfg['model']['encoder_kwargs']
     padding = cfg['data']['padding']
-    out_bool = cfg['training']['bool']
+    out_bool = cfg['training']['bool'] or cfg['test']['bool']
     out_float = cfg['training']['float']
     
     
@@ -50,34 +45,40 @@ def get_init_network(cfg, device=None, **kwargs):
         encoder_kwargs['pos_encoding'] = cfg['model']['pos_encoding']
         decoder_kwargs['pos_encoding'] = cfg['model']['pos_encoding']
     
+    # network_decoder = decoder.LocalDecoder(    
+    #     out_bool=out_bool,
+    #     out_float=out_float,
+    #     dim=dim,
+    #     c_dim=c_dim,
+    #     padding=padding,
+    #     **decoder_kwargs
+    # )
 
-    # decoder = models.decoder_dict[decoder](
-    decoder = models.decoder.LocalDecoder(    
-        out_bool=out_bool,
-        out_float=out_float,
-        dim=dim,
-        c_dim=c_dim,
-        padding=padding,
+    # network_encoder = pointnet.LocalPoolPointnet(
+    #     dim=dim,
+    #     c_dim=c_dim,
+    #     padding=padding,
+    #     **encoder_kwargs
+    # )
+        
+    network_decoder = decoder_dict[inside_decoder](
+        out_bool=out_bool, out_float=out_float,
+        dim=dim, c_dim=c_dim, padding=padding,
         **decoder_kwargs
     )
-
-
-    # encoder = encoder_dict[encoder](
-    encoder = pointnet.LocalPoolPointnet(
-        out_bool=out_bool,
-        out_float=out_float,
-        dim=dim,
-        c_dim=c_dim,
-        padding=padding,
+    
+    network_encoder = encoder_dict[inside_encoder](
+        dim=dim, c_dim=c_dim, padding=padding,
         **encoder_kwargs
     )
         
     model = models.ConvolutionalOccupancyNetwork(
-        decoder, 
-        encoder, 
+        network_decoder, 
+        network_encoder, 
         device=device
     )
 
+    
     return model
 
 
@@ -96,9 +97,12 @@ def get_trainer(model, optimizer, cfg, device, **kwargs):
     input_type = cfg['data']['input_type']
 
     trainer = training.Trainer(
-        model, optimizer,
-        device=device, input_type=input_type,
-        vis_dir=vis_dir, threshold=threshold,
+        model, 
+        optimizer,
+        device=device, 
+        input_type=input_type,
+        vis_dir=vis_dir, 
+        threshold=threshold,
         eval_sample=cfg['training']['eval_sample'],
     )
 
@@ -131,32 +135,4 @@ def get_init_generator(model, cfg, device, **kwargs):
         vol_info = vol_info,
         vol_bound = vol_bound,
     )
-    return generator
-
-
-def init_points_fields(mode, cfg):
-    ''' Returns the data fields. 这里只是返回一个字典，字典里面是初始化好的累的对象，这里并没有真正地获取到 fields 数据
-
-    Args:
-        mode (str): the mode which is used
-        cfg (dict): imported yaml config
-    '''
-    points_subsample = data.PointsSubsample(cfg['data']['points_subsample']) # 这里只是初始化一个类
-
-    points_fields = {}
-
-    points_fields['occ_points'] = data.PointsField(
-        cfg['data']['points_file'], 
-        points_subsample,
-        unpackbits=cfg['data']['points_unpackbits'],
-        multi_files=cfg['data']['multi_files']
-    ) # 这里也是初始化一个类
-            
-    if mode in ('val', 'test'):
-        points_fields['iou_occ_points'] = data.PointsField(
-            cfg['data']['points_iou_file'], # points.npz
-            unpackbits=cfg['data']['points_unpackbits'],
-            multi_files=cfg['data']['multi_files']
-        )
-
-    return points_fields            
+    return generator        

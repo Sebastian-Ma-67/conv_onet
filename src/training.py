@@ -17,9 +17,6 @@ class BaseTrainer(object):
         i = 0
         for data in tqdm(val_loader):
             eval_step_dict = self.eval_step(data, it)
-            i += 1            
-            if i >= 11: # 这里面我们值与测试前十个val数据
-                break
 
             for k, v in eval_step_dict.items():
                 eval_list[k].append(v)

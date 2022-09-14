@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from src.data.utils import read_data,read_and_augment_data_undc,read_data_input_only
+from src.data.utils import read_data,read_and_augment_data_undc,read_data_input_only, makeGrid
 
 
 class ABC_pointcloud_hdf5(torch.utils.data.Dataset):
@@ -106,10 +106,8 @@ class ABC_pointcloud_hdf5(torch.utils.data.Dataset):
         # 接下来这部分，我着重说一下啊，我们不需要kdtree，也不需要KNN，我们只需要input points [Np, 3], 一个 gt_output_bool 的值，这个值应该是 [32, 32, 32], 有可能是33 
         # 然后，我们拿着这部分数据，把他交给convonet，让他训练，然后用 ndc 的方法计算 loss
 
-        
-
         pointcloud_data['input_points'] = gt_input_
-        pointcloud_data['input_probes']  = input_probes???
+        pointcloud_data['input_probes']  = makeGrid(bb_max=[0.96875, 0.96875, 0.96875], shape=[32, 32, 32]) # 我们试试 probes 的方法
         if self.out_bool:
             pointcloud_data['gt_output_bool'] = gt_output_bool_[:-1, :-1, :-1, :] # 强行舍弃掉边缘的值，使得其变成32x32x32x3
         if not self.train:

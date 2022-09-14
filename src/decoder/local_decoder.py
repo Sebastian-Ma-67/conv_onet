@@ -86,9 +86,11 @@ class WithProbeDecoder(nn.Module):
         self.out_float = out_float
 
         if c_dim != 0:
-            self.fc = nn.ModuleList([
+            self.fc_feature = nn.ModuleList([
                 nn.Linear(c_dim, hidden_size) for i in range(n_blocks)
             ])
+
+        self.fc_probe = nn.Linear(dim, hidden_size)
 
         self.blocks = nn.ModuleList([
             ResnetBlockFC(hidden_size) for i in range(n_blocks)
@@ -104,16 +106,24 @@ class WithProbeDecoder(nn.Module):
             self.pc_conv_out_bool = nn.Linear(hidden_size, 3)      
 
 
-    def forward(self, encoded_features, **kwargs):
-        
+    def forward(self, input_probes, encoded_features, **kwargs):
+        input_probes = input_probes.float()
         encoded_features = encoded_features.permute(0, 2, 3, 4, 1)
         
-        net = self.fc[0](encoded_features)
-        net = F.leaky_relu(net, negative_slope=0.01, inplace=True)
-        net = self.blocks[0](net)
-        for i in range(1, self.n_blocks):
-            net = net + F.leaky_relu(self.fc[i](encoded_features), negative_slope=0.01, inplace=True)        
-            net = self.blocks[i](net)
+        net = self.fc_probe(input_probes)
+                
+        for i in range(self.n_blocks):
+            if self.c_dim != 0:
+                net = net + F.leaky_relu(self.fc_feature[i](encoded_features), negative_slope=0.01, inplace=True)
+
+            net = self.blocks[i](net)        
+        
+        # net = self.fc_feature[0](encoded_features)
+        # net = F.leaky_relu(net, negative_slope=0.01, inplace=True)
+        # net = self.blocks[0](net)
+        # for i in range(1, self.n_blocks):
+        #     net = net + F.leaky_relu(self.fc_feature[i](encoded_features), negative_slope=0.01, inplace=True)        
+        #     net = self.blocks[i](net)
             
         if self.out_bool:
             net = self.actvn(net)

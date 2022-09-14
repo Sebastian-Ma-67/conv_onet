@@ -27,6 +27,7 @@ from src.data.utils import (
     dual_contouring_undc_test,
     write_obj_triangle,
     write_ply_point,
+    makeGrid,
 )
 
 __all__ = [
@@ -52,4 +53,5 @@ __all__ = [
     dual_contouring_undc_test,
     write_obj_triangle,
     write_ply_point,
+    makeGrid,
 ]

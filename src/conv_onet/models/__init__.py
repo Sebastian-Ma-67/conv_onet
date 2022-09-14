@@ -3,11 +3,11 @@ import torch.nn as nn
 from torch import distributions as dist
 from src.conv_onet.models import decoder
 # Decoder dictionary
-decoder_dict = {
-    'simple_local': decoder.LocalDecoder,
-    # 'simple_local_crop': decoder.PatchLocalDecoder,
-    'with_probe_decoder': decoder.WithProbeDecoder
-}
+# decoder_dict = {
+#     'simple_local': decoder.LocalDecoder,
+#     # 'simple_local_crop': decoder.PatchLocalDecoder,
+#     'with_probe_decoder': decoder.WithProbeDecoder
+# }
 
 class ConvolutionalOccupancyNetwork(nn.Module):
     ''' Occupancy Network class.

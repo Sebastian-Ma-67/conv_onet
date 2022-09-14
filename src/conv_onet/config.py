@@ -61,16 +61,18 @@ def get_init_network(cfg, device=None, **kwargs):
     #     **encoder_kwargs
     # )
         
+    network_encoder = encoder_dict[inside_encoder](
+        dim=dim, c_dim=c_dim, padding=padding,
+        **encoder_kwargs
+    )
+
     network_decoder = decoder_dict[inside_decoder](
         out_bool=out_bool, out_float=out_float,
         dim=dim, c_dim=c_dim, padding=padding,
         **decoder_kwargs
     )
     
-    network_encoder = encoder_dict[inside_encoder](
-        dim=dim, c_dim=c_dim, padding=padding,
-        **encoder_kwargs
-    )
+
         
     model = models.ConvolutionalOccupancyNetwork(
         network_decoder, 

@@ -16,7 +16,7 @@ import numpy as np
 import cutils
 from src.data.utils import write_obj_triangle, write_ply_point
 
-cuda_visible_devices = "2"
+cuda_visible_devices = "0"
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]= cuda_visible_devices # 将2, 3号显卡设置为可见卡
 
@@ -96,9 +96,13 @@ model_counter = defaultdict(int)
 
 
 grid_size = 32
-
+num = 0 
 for it, data in enumerate(tqdm(test_loader)):
 
+    if num > 100:
+        break
+    else:
+        num += 1
     if 1:
         input_points = data['input_points'].to(device)
         gt_output_bool_ = data['gt_output_bool'].to(device)
@@ -108,9 +112,7 @@ for it, data in enumerate(tqdm(test_loader)):
         with torch.no_grad():
             if net_bool:
                 pred_output_bool = network_bool(input_points).probs
-            if net_float:
-                pred_output_float = net_float(input_points)
-                
+
             if not net_bool:
                 pred_output_bool = gt_output_bool_[0].to(device)
             if not net_float:

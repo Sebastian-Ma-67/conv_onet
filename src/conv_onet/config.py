@@ -44,22 +44,6 @@ def get_init_network(cfg, device=None, **kwargs):
     if 'pos_encoding' in cfg['model']:
         encoder_kwargs['pos_encoding'] = cfg['model']['pos_encoding']
         decoder_kwargs['pos_encoding'] = cfg['model']['pos_encoding']
-    
-    # network_decoder = decoder.LocalDecoder(    
-    #     out_bool=out_bool,
-    #     out_float=out_float,
-    #     dim=dim,
-    #     c_dim=c_dim,
-    #     padding=padding,
-    #     **decoder_kwargs
-    # )
-
-    # network_encoder = pointnet.LocalPoolPointnet(
-    #     dim=dim,
-    #     c_dim=c_dim,
-    #     padding=padding,
-    #     **encoder_kwargs
-    # )
         
     network_encoder = encoder_dict[inside_encoder](
         dim=dim, c_dim=c_dim, padding=padding,
@@ -71,15 +55,12 @@ def get_init_network(cfg, device=None, **kwargs):
         dim=dim, c_dim=c_dim, padding=padding,
         **decoder_kwargs
     )
-    
-
-        
+            
     model = models.ConvolutionalOccupancyNetwork(
         network_decoder, 
         network_encoder, 
         device=device
     )
-
     
     return model
 

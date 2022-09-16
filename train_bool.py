@@ -12,7 +12,7 @@ import shutil
 import wandb
 
 os.environ["WANDB_DISABLE_CODE"]= 'true'
-os.environ['WANDB_MODE']='offline' # offline 表示暂停使用wandb服务
+os.environ['WANDB_MODE']='online' # offline 表示暂停使用wandb服务
 
 cuda_visible_devices = "5"
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
@@ -87,14 +87,8 @@ else:
                      'either maximize or minimize.')
 
 # if FLAGS.train_bool or FLAGS.test_bool:
-if cfg['training']['bool'] or cfg['test']['bool']:
+if cfg['training']['bool']:
     net_bool = True
-if cfg['training']['float'] or cfg['test']['float']:
-    net_float = True
-if cfg['test']['input'] != None:
-    quick_testing = True
-    net_bool = True
-    net_float = True
 
 # Output directory
 if not os.path.exists(out_dir):
@@ -116,22 +110,13 @@ val_loader = torch.utils.data.DataLoader(
     collate_fn=data.collate_remove_none,
     worker_init_fn=data.worker_init_fn)
 
-
 # 初始化网络，优化器，训练器，并确定训练的模型类型
-if net_bool:
-    network_bool = config.get_init_network(cfg, device=device)
-    optimizer = torch.optim.Adam(network_bool.parameters(), lr=1e-4)
-        
-    network_bool.to(device)  
-    trainer = config.get_init_trainer(network_bool, optimizer, cfg, device=device) # 将模型，优化器，配置参数攒在一起，就构成了训练器
-      
-    model = network_bool
-if net_float:
-    network_float = config.get_init_network(cfg, device=device)   
-    network_float.to(device)
-    optimizer = torch.optim.Adam(network_float.parameters(), lr=1e-4)
-    trainer = config.get_init_trainer(network_float, optimizer, cfg, device=device) # 将模型，优化器，配置参数攒在一起，就构成了训练器
-    model = network_float
+network_bool = config.get_init_network(cfg, device=device)
+optimizer = torch.optim.Adam(network_bool.parameters(), lr=1e-4)
+    
+network_bool.to(device)  
+trainer = config.get_init_trainer(network_bool, optimizer, cfg, device=device) # 将模型，优化器，配置参数攒在一起，就构成了训练器
+model = network_bool
     
 # 初始化 checkpoint_io 类，并加载已经训练好的模型（如果有的话，没有的话，就初始化为空）
 checkpoint_io = CheckpointIO(checkpoint_dir, model=model, optimizer=optimizer)
@@ -154,7 +139,7 @@ print('Current best validation metric (%s): %.8f'
 logger = SummaryWriter(os.path.join(out_dir, 'logs'))
 
 # Print model's size
-nparameters = sum(p.numel() for p in model.parameters())
+nparameters = sum(p.numel() for p in network_bool.parameters())
 print('Total number of parameters: %d' % nparameters) # 1068545 ≈ 1M
         
 for epoch in range(train_epochs):
@@ -178,7 +163,6 @@ for epoch in range(train_epochs):
         loss, avg_acc_bool, avg_acc_float = trainer.train_step(batch) # 开始训练
         logger.add_scalar('train/loss', loss, it)
 
-
         # Print output
         if print_every > 0 and (it % print_every) == 0:
             t = datetime.datetime.now()
@@ -193,19 +177,6 @@ for epoch in range(train_epochs):
         
         # Run validation
         if validate_every > 0 and (it % validate_every) == 0:
-            # eval_dict = trainer.evaluate(val_loader, it)
-            # eval_dict = trainer.evaluate(val_loader, it)
-            # eval_loss = eval_dict['eval_loss']
-            # wandb.log({"Test avg loss":eval_loss})
             print('val')
-
-            
-    # print('[%d/%d] time: %.0f  avg_loss: %.8f  avg_acc_loss_bool_mean: %.8f  avg_acc_loss_float_mean: %.8f' % (
-    #     epoch_it, 
-    #     cfg['training']['epoch'], 
-    #     time.time() - t0, 
-    #     avg_loss / max(avg_loss_count, 1), 
-    #     avg_acc_bool_all / max(avg_acc_bool_count, 1), 
-    #     avg_acc_float_all / max(avg_acc_float_count, 1)))
     
 wandb.finish()

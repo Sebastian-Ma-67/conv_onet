@@ -41,6 +41,7 @@ class Trainer(BaseTrainer):
         '''
         self.model.train() # 将网络设置为训练模式
         self.optimizer.zero_grad() # 将梯度置为0，也就是把loss关于weight的导数置为0；注意，这里对于每个batch都做了这样的操作
+        # torch.autograd.set_detect_anomaly(True)
         loss, avg_acc_bool, avg_acc_float = self.compute_loss(data) # 将input_data, 输入到网络中，并计算loss
         loss.backward() # 反向传播
         self.optimizer.step() # 更新所有参数
@@ -65,7 +66,7 @@ class Trainer(BaseTrainer):
 
         avg_acc_float = 0
         avg_acc_bool = 0
-        if self.model.encoder.out_bool:
+        if self.model.decoder.out_bool:
             # 获取bool的真值
             gt_output_bool = total_points.get('gt_output_bool').to(device)
             loss_i = F.binary_cross_entropy_with_logits(pred_output_logits, gt_output_bool.float(), reduction='none')

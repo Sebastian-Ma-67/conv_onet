@@ -104,9 +104,9 @@ class LocalPoolPointnet(nn.Module):
         coord = {}
         index = {}
         
-        if 'grid' in self.plane_type:
-            coord['grid'] = normalize_3d_coordinate(points_raw.clone(), padding=self.padding)
-            index['grid'] = coordinate2index(coord['grid'], self.reso_grid, coord_type='3d')
+
+        coord['grid'] = normalize_3d_coordinate(points_raw.clone(), padding=self.padding)
+        index['grid'] = coordinate2index(coord['grid'], self.reso_grid, coord_type='3d')
         
         net = self.fc_pos(points_raw)
 
@@ -118,7 +118,6 @@ class LocalPoolPointnet(nn.Module):
 
         features = self.fc_c(net)
 
-        if 'grid' in self.plane_type:
-            scatter_feature = self.generate_grid_features(points_raw, features) # [bs, 32, 64, 64, 64]
+        scatter_feature = self.generate_grid_features(points_raw, features) # [bs, 32, 64, 64, 64]
         
         return scatter_feature

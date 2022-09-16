@@ -68,7 +68,7 @@ class ABC_pointcloud_hdf5(torch.utils.data.Dataset):
         hdf5_dir = self.data_dir + "/" + self.hdf5_names[index%100] + ".hdf5"
         if self.input_type=="pointcloud": 
             # grid_size = self.hdf5_gridsizes[index]
-            grid_size = self.hdf5_gridsizes[index%100]
+            grid_size = self.hdf5_gridsizes[index]
 
         if self.train:
             gt_output_bool_, gt_output_float_, gt_input_ = read_and_augment_data_undc(hdf5_dir,
@@ -107,7 +107,7 @@ class ABC_pointcloud_hdf5(torch.utils.data.Dataset):
         # 然后，我们拿着这部分数据，把他交给convonet，让他训练，然后用 ndc 的方法计算 loss
 
         pointcloud_data['input_points'] = gt_input_
-        pointcloud_data['input_probes']  = makeGrid(bb_max=[0.96875, 0.96875, 0.96875], shape=[32, 32, 32]) # 我们试试 probes 的方法
+        # pointcloud_data['input_probes']  = makeGrid(bb_max=[0.96875, 0.96875, 0.96875], shape=[32, 32, 32]) # 我们试试 probes 的方法
         if self.out_bool:
             pointcloud_data['gt_output_bool'] = gt_output_bool_[:-1, :-1, :-1, :] # 强行舍弃掉边缘的值，使得其变成32x32x32x3
         if not self.train:

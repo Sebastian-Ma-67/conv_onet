@@ -14,9 +14,9 @@ import wandb
 os.environ["WANDB_DISABLE_CODE"]= 'true'
 os.environ['WANDB_MODE']='online' # offline 表示暂停使用wandb服务
 
-cuda_visible_devices = "5"
+cuda_visible_devices = "3" # 将 3 号显卡设置为可见卡
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]= cuda_visible_devices # 将2, 3号显卡设置为可见卡
+os.environ["CUDA_VISIBLE_DEVICES"]= cuda_visible_devices 
 
 wandb.init(
     # Set the project where this run will be logged

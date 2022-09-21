@@ -21,7 +21,7 @@ model:
       f_maps: 32
       in_channels: 32
       out_channels: 128
-  decoder: local_decoder
+  decoder: local_decoder_Larger
   decoder_kwargs:
     sample_mode: bilinear # bilinear / nearest
     hidden_size: 32
